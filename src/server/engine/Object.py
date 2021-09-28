@@ -5,7 +5,7 @@ import numpy as np
 from socketio import AsyncServer
 
 from .SpriteType import SpriteType
-from .vector import Vector
+from .vector import Vector, Sphere
 
 
 class Object:
@@ -32,6 +32,7 @@ class Object:
         # debugging physics precision.
         self.old_energy: float = -1
         self.collision_radius: float = 0
+        self.collision_sphere: Sphere = Sphere(self.position, self.collision_radius)
 
         self.gun_timer: float = 0
         self.smoke_timer: float = 0
@@ -40,8 +41,8 @@ class Object:
 
         self.dead: bool = False
 
-        self._strafe_left: bool = False
-        self._strafe_right: bool = False
+        self.strafe_left: bool = False
+        self.strafe_right: bool = False
 
         self.is_bullet: bool = False
 
@@ -77,12 +78,6 @@ class Object:
     @property
     def view_vector(self):
         return Vector(-np.sin(self.roll), np.cos(self.roll))
-
-    def strafe_left(self):
-        self._strafe_left = True
-
-    def strafe_right(self):
-        self._strafe_right = True
 
     def emit_smoke(self):
         pass

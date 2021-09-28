@@ -39,3 +39,4 @@ with open('../../config.json') as f:
     ConfigData = Config(**json.load(f))
 
 gravity_constant: float = 1  # Gravity Constant in Newton's Law of Universal Gravitation
+turns_enabled: bool = True  # Set False for debug
