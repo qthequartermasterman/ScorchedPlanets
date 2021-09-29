@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from .ObjectManager import ObjectManager
 
 
 class CameraMode(Enum):
@@ -12,4 +11,4 @@ class CameraMode(Enum):
 
 control_lock = True
 camera_mode = CameraMode.PLAYER_LOCKED
-object_manager = ObjectManager()
+

@@ -61,7 +61,18 @@ class Object:
 
         # Calculate effect of gravity for all gravitationally affected objects
         # TODO: If there is only one source of gravity, instead just predict its conic section orbit
+
+        #  Having the objects move AFTER calculating what their velocity should be on the next time step seems to
+        #  improve numerical stability of simulations. This makes a certain amount of sense. This effectively is a crude
+        #  Semi-implicit Euler integration, as opposed to the naive Euler integration it was doing before. It's still
+        #  not 100% accurate, but at least in 2 body systems, elliptical orbits stay elliptical and do not precess
+        #  (rotate) as quickly as they were before! I'll take the appearance of accuracy over blatant inaccuracy.
+
+        # Improved accuracy could probably be found in doing a Runge Kutta integration, but that's way more work than
+        # I want to commit today.
+        self.velocity += self.acceleration * dt
         self.position = self.velocity * dt
+        self.collision_sphere.center = self.position
 
     def collision_response(self):
         self.old_position = self.position

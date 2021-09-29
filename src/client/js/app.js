@@ -394,8 +394,9 @@ function drawPlanet(planet){
     gradient.addColorStop(0, "yellow");
     gradient.addColorStop(1 - 5000/6370, '#E2D61D') //inner core
     gradient.addColorStop(1 - 4000/6370, '#E2A91D') //upper core
-    gradient.addColorStop(1 - 1000/6370, '#F59623') // lower mantle
-    gradient.addColorStop(1 - 35/6370, '#C23A0A') // upper mantle
+    gradient.addColorStop(1 - 2500/6370, '#F59623') // lower mantle
+    gradient.addColorStop(1 - 1000/6370, '#C23A0A') // upper mantle
+    gradient.addColorStop(1 - 35/6370, 'grey');  // crust
     gradient.addColorStop(1 - 0/6370, 'grey');  // crust
     //gradient.addColorStop(1, 'hsl(' + planet.hue + ', 100%, 50%)');
     //graph.fillStyle = 'hsl(' + planet.hue + ', 100%, 50%)';

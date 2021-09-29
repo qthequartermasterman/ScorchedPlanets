@@ -8,7 +8,7 @@ from .Object import Object
 from .PlanetObject import PlanetObject
 from .SpriteType import SpriteType
 from .vector import Vector, UnitVector
-from .Config import gravity_constant, turns_enabled
+from .Config import turns_enabled, gravity_constant
 from .SoundType import SoundType
 from . import Common
 
@@ -80,7 +80,7 @@ class TankObject(Object):
 
         # variables for bullet selection
         self.selected_bullet: int = 0
-        # Array of avaiable bullet types to choose from
+        # Array of available bullet types to choose from
         self.bullet_types: List[SpriteType] = [SpriteType.BULLET_SPRITE, SpriteType.BULLET2_SPRITE,
                                                SpriteType.BULLET4_SPRITE, SpriteType.BULLET5_SPRITE,
                                                SpriteType.BULLET7_SPRITE, SpriteType.BULLET6_SPRITE,
@@ -293,3 +293,6 @@ class TankObject(Object):
                 'planet_y': self.home_planet.position.y,
                 'angle': self.angle,
                 'longitude': self.longitude, }
+
+    def think(self):
+        pass

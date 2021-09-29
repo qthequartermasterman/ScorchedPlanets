@@ -10,6 +10,7 @@ from engine.PlanetObject import PlanetObject
 from engine.vector import Vector
 from engine.util import validNick
 from engine.Config import ConfigData
+from engine.ObjectManager import ObjectManager
 
 # Set up Web Server
 from src.server.engine.PlayerInfo import PlayerInfo
@@ -19,14 +20,18 @@ app = web.Application()
 sio = socketio.AsyncServer(async_mode='aiohttp')
 sio.attach(app)
 
-users = []
-sockets = dict()
-planets = dict()
-tanks: Dict[str, TankObject] = dict()
+object_manager = ObjectManager()
+users = object_manager.users
+sockets = object_manager.sockets
+# planets = dict()
+# tanks: Dict[str, TankObject] = dict()
 for _ in range(1):
-    planet = PlanetObject(Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
-                          randint(0, 500))
-    planets[planet.id] = planet
+    # planet = PlanetObject(Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
+    #                       randint(0, 500))
+    # planets[planet.id] = planet
+    object_manager.create_planet(
+        position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
+        radius=randint(50, 500))
 
 
 @sio.event
@@ -49,7 +54,7 @@ async def connect(sid, socket, auth):
 
 @sio.event
 async def gotit(sid, player):
-    player = PlayerInfo.from_dict(player, tanks)
+    player = PlayerInfo.from_dict(player, object_manager.tanks)
     print('[INFO] Player ' + player.name + ' connecting!')
 
     if player.id in users:
@@ -65,13 +70,16 @@ async def gotit(sid, player):
             sockets[player.id] = sid
             session['currentPlayer'] = player
             session['currentPlayer'].lastHeartbeat = datetime.now().timestamp()
-            tanks[sid] = TankObject(longitude=random() * 360,
-                                    planet=choice(list(planets.values())),
-                                    color=str(int(random() * 360))
-                                    )
+            object_manager.create_tank(longitude=random() * 360,
+                                       home_planet=choice(list(object_manager.planets.values())),
+                                       sid=sid,
+                                       color=str(int(random() * 360)))
+            # tanks[sid] = TankObject(longitude=random() * 360,
+            #                         planet=choice(list(planets.values())),
+            #                         color=str(int(random() * 360))
+            #                         )
 
             users.append(session['currentPlayer'])
-
 
             await sio.emit('playerJoin', {'name': session['currentPlayer'].name})
 
@@ -138,79 +146,25 @@ async def heartbeat(sid, target):
 
 
 async def send_objects_initial(*args, **kwargs):
-    for planet in planets.values():
-        await planet.emit_initial(sio, *args, **kwargs)
-    for user in users:
-        await user.emit_initial(tanks, sio, *args, **kwargs)
+    return await object_manager.send_objects_initial(sio, *args, **kwargs)
 
 
 async def send_updates(*args, **kwargs):
     # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
-
-    for planet in planets.values():
-        await planet.emit_changes(sio, *args, **kwargs)
-
-    for user in users:
-        await user.emit_changes(tanks, sio, *args, **kwargs)
-
-    for u in users:
-        # center the view if x/y is undefined, this will happen for spectators
-        u.x = u.x or ConfigData.gameWidth / 2
-        u.y = u.y or ConfigData.gameHeight / 2
-
-        def user_mapping_function(f):
-            if f.id != u.id:
-                return {'id': f.id,
-                        'x': f.x,
-                        'y': f.y,
-                        'hue': f.hue,
-                        'name': f.name
-                        }
-            else:
-                return {'x': f.x,
-                        'y': f.y,
-                        'hue': f.hue,
-                        'name': f.name
-                        }
-
-        user_transmit = [user_mapping_function(x) for x in users]
-        sid = sockets[u.id]
-        await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
+    return await object_manager.send_updates(sio, *args, **kwargs)
 
 
-def tickPlayer(currentPlayer):
+async def tickPlayer(currentPlayer):
     if currentPlayer.lastHeartbeat < datetime.now().timestamp() - ConfigData.maxHeartbeatInterval:
         sid = sockets[currentPlayer.id]
-        sio.emit('kick', f'Last heartbeat received over {ConfigData.maxHeartbeatInterval} ago.', room=sid)
-        sio.disconnect(sid)
+        await sio.emit('kick', f'Last heartbeat received over {ConfigData.maxHeartbeatInterval} ago.', room=sid)
+        await sio.disconnect(sid)
 
     # movePlayer(currentPlayer)
 
 
 async def moveloop():
-    for user in users:
-        tickPlayer(user)
-
-    dt = 1.0
-    gravity_constant = 1000
-    # for i in range(len(food)):
-    #     acceleration = Vector(0, 0)
-    #     for j in range(len(users)):
-    #         user_position = Vector(users[j].x, users[j].y)
-    #         food_position = Vector(food[i]['x'], food[i]['y'])
-    #         difference = user_position - food_position
-    #         distance = abs(difference)
-    #
-    #         unit_vector = difference.normalize()
-    #         magnitude = gravity_constant * users[j].massTotal / (distance ** 2)  # Newton's law of universal gravitation
-    #         acceleration += magnitude * unit_vector
-    #
-    #     # Semi-implicit Euler Integration
-    #     food[i]['vel_x'] += acceleration.x * dt
-    #     food[i]['vel_y'] += acceleration.y * dt
-    #
-    #     food[i]['x'] += food[i]['vel_x'] * dt
-    #     food[i]['y'] += food[i]['vel_y'] * dt
+    return object_manager.move()
 
 
 async def gameloop():

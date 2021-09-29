@@ -1,11 +1,5 @@
 from dataclasses import dataclass
-from typing import List
-from datetime import datetime
-
 from socketio import AsyncServer
-from copy import deepcopy
-
-from .TankObject import TankObject
 from .vector import Vector
 
 

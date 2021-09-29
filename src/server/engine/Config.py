@@ -34,9 +34,10 @@ class Config:
     def __getitem__(self, item):
         return self.__getattribute__(item)
 
+
 ConfigData: Config
 with open('../../config.json') as f:
     ConfigData = Config(**json.load(f))
 
-gravity_constant: float = 1  # Gravity Constant in Newton's Law of Universal Gravitation
 turns_enabled: bool = True  # Set False for debug
+gravity_constant: float = 1  # Gravity Constant in Newton's Law of Universal Gravitation
