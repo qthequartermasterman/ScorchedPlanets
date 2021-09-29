@@ -2,13 +2,15 @@ import datetime
 from random import random
 from typing import List
 
+from socketio import AsyncServer
+
 from .Object import Object
 from .PlanetObject import PlanetObject
 from .SpriteType import SpriteType
 from .vector import Vector, UnitVector
 from .Config import gravity_constant, turns_enabled
 from .SoundType import SoundType
-import Common
+from . import Common
 
 from enum import Enum, auto
 from math import sqrt, pi
@@ -38,11 +40,11 @@ class TankAnimationState(Enum):
 
 
 class TankObject(Object):
-    def __init__(self, longitude: float, planet: PlanetObject, color: str = None):
+    def __init__(self, longitude: float, planet: PlanetObject, color: str = None, angle: float = 0):
         super().__init__(Vector(0, 0))
         self.home_planet = planet
         self.longitude = longitude
-        self.angle: float = 0  # Angle at which the turret gun is pointing
+        self.angle: float = angle  # Angle at which the turret gun is pointing
         self.health_points = 100  # Starting health
 
         self.damage_sound = SoundType.EXPLOSION1_SOUND
@@ -154,7 +156,7 @@ class TankObject(Object):
 
     def fire_phantom_gun(self, bullet: SpriteType, orientation: Vector, power: float,
                          position: Vector = Vector(0, 0)) -> float:
-        if position == Vector(0,0):  # In the default case, use the current position
+        if position == Vector(0, 0):  # In the default case, use the current position
             position = self.position
         position = position + .5 * self.collision_radius * orientation
         power = self.power
@@ -165,11 +167,10 @@ class TankObject(Object):
         running_distance_sum: float = 0
         for i in range(num_simulations):
             if i:
-                power /=1.01
+                power /= 1.01
                 velocity = self.velocity + power * orientation  # Power is the starting velocity
                 running_distance_sum += Common.object_manager.create_phantom_bullet(bullet, position, velocity, self)
-        return running_distance_sum/num_simulations
-
+        return running_distance_sum / num_simulations
 
     def take_damage(self, damage: int):
         """
@@ -240,7 +241,55 @@ class TankObject(Object):
         self.selected_bullet += 1
         if self.selected_bullet >= self.bullet_type_count:
             self.selected_bullet = 0
-        while not self.bullet_counts[self.selected_bullet]: # If that's empty, then switch to the next bullet type
+        while not self.bullet_counts[self.selected_bullet]:  # If that's empty, then switch to the next bullet type
             self.next_bullet_type()
 
         return self.bullet_types[self.selected_bullet]
+
+    async def emit_initial(self, server: AsyncServer, *args, **kwargs) -> None:
+        """
+        Send all initial properties of this object to the server
+        :param server: AsyncServer to send changes from via socket-io protocol
+        :return: None
+        """
+        await server.emit('initial',
+                          {'id': self.id,
+                           'sprite': str(self.sprite_type),
+                           'hue': self.hue,
+                           'x': self.position.x,
+                           'y': self.position.y,
+                           'planet_x': self.home_planet.position.x,
+                           'planet_y': self.home_planet.position.y,
+                           'angle': self.angle,
+                           'longitude': self.longitude
+                           },
+                          *args, **kwargs)
+
+    async def emit_changes(self, server: AsyncServer, *args, **kwargs) -> None:
+        """
+        Send all changes of this object to the server
+        :param server: AsyncServer to send changes from via socket-io protocol
+        :return: None
+        """
+        while not self.changes_queue.empty():
+            item = self.changes_queue.get()
+            await server.emit('update',
+                              {'id': self.id,
+                               'sprite': str(self.sprite_type),
+                               'x': self.position.x,
+                               'y': self.position.y,
+                               'planet_x': self.home_planet.position.x,
+                               'planet_y': self.home_planet.position.y,
+                               'angle': self.angle,
+                               'longitude': self.longitude,
+                               'update': item}, *args, **kwargs)
+            self.changes_queue.task_done()
+
+    def get_changes(self):
+        return {'sprite': str(self.sprite_type),
+                'x': self.position.x,
+                'y': self.position.y,
+                'planet_x': self.home_planet.position.x,
+                'planet_y': self.home_planet.position.y,
+                'angle': self.angle,
+                'longitude': self.longitude, }

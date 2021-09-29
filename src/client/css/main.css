@@ -257,6 +257,17 @@ div {
     top: 0;
     left: 0;
     opacity: 0;
+
+
+    background-color: #222222;
+    background-image: url('/img/starfields/starfield2.jpg');
+    background-size: cover;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/homeBg.jpg', sizingMethod='scale');
+    -ms-filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/homeBg', sizingMethod='scale');
+
 }
 
 @media only screen  and (min-width : 1224px) {

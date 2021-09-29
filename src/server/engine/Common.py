@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from ObjectManager import ObjectManager
+from .ObjectManager import ObjectManager
 
 
 class CameraMode(Enum):

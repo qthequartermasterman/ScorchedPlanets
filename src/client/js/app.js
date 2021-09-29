@@ -154,6 +154,23 @@ $( "#split" ).click(function() {
     window.canvas.reenviar = false;
 });
 
+//load images
+function load_image(url){
+    let img = new Image();
+    img.src = url
+    return img
+}
+
+sprites = {
+    GREYBODY1_SPRITE: load_image('/img/tanks_tankGrey_body1.png'),
+    TURRET1_SPRITE: load_image('/img/tanks_turret1.png'),
+    TREADS1_SPRITE: load_image('/img/tanks_tankTracks1.png'),
+}
+
+
+
+
+
 // socket stuff.
 function setupSocket(socket) {
     // Handle ping.
@@ -333,6 +350,37 @@ function drawFood(food) {
     drawCircle(food.x - player.x + global.screenWidth / 2,
                food.y - player.y + global.screenHeight / 2,
                food.radius, global.foodSides);
+}
+
+function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX, axisY){
+    context.translate( positionX, positionY );
+    context.rotate( angleInRadians );
+    context.drawImage( image, -axisX, -axisY );
+    context.rotate( -angleInRadians );
+    context.translate( -positionX, -positionY );
+}
+
+
+function drawTank(tank){
+    let centerX = tank.x - player.x + global.screenWidth / 2;
+    let centerY = tank.y - player.y + global.screenHeight / 2;
+
+    let difference_x = tank.x - tank.planet_x;
+    let difference_y = tank.y - tank.planet_y;
+    // Turret
+    let turret_angle = Math.PI + (tank.angle + tank.longitude) * Math.PI/180;
+    rotateAndDrawImage(graph, sprites.TURRET1_SPRITE, turret_angle, centerX, centerY, 0, 0);
+
+    // Treads
+    let render_angle = Math.PI + tank.longitude * Math.PI/180;
+    let height = sprites.TREADS1_SPRITE.height
+    let tread_x = centerX - .3 *height*difference_x;
+    let tread_y = centerX - .3 * height * difference_y;
+    rotateAndDrawImage(graph, sprites.TREADS1_SPRITE, render_angle, tread_x, tread_y, 0, 0);
+
+    // Tank Body
+    rotateAndDrawImage(graph, sprites.GREYBODY1_SPRITE, render_angle, centerX, centerY, 0, 0);
+
 }
 
 function drawPlanet(planet){
@@ -590,14 +638,15 @@ function gameLoop() {
     }
     else if (!global.disconnected) {
         if (global.gameStart) {
-            graph.fillStyle = global.backgroundColor;
-            graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
+            //graph.fillStyle = global.backgroundColor;
+            //graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
-            drawgrid();
-            foods.forEach(drawFood);
+            //drawgrid();
+            //foods.forEach(drawFood);
             planets.forEach(drawPlanet)
-            fireFood.forEach(drawFireFood);
-            viruses.forEach(drawVirus);
+            //fireFood.forEach(drawFireFood);
+            //viruses.forEach(drawVirus);
+            users.forEach(drawTank)
 
             if (global.borderDraw) {
                 drawborder();

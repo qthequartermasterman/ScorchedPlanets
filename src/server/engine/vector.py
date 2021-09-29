@@ -33,13 +33,13 @@ class Vector(np.ndarray):
 class UnitVector(Vector):
     """Vector with unit length"""
 
-    def __init__(self, angle: float, dtype=float):
+    def __new__(cls, angle: float, dtype=float):
         """
 
         :param angle: Angle of the vector from the positive x-axis in radians
         :param dtype:
         """
-        super().__init__(cos(angle), sin(angle), dtype=dtype)
+        return Vector(cos(angle), sin(angle), dtype=dtype)
 
 
 @dataclass
