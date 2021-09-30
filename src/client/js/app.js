@@ -410,14 +410,19 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
 
 
 function drawTank(tank){
-    let centerX = tank.x - player.x + global.screenWidth / 2;
-    let centerY = tank.y - player.y + global.screenHeight / 2;
+    let centerX = tank.x - player.x + global.screenWidth / 2 ;
+    let centerY = tank.y - player.y + global.screenHeight / 2 ;
 
     let difference_x = tank.x - tank.planet_x;
     let difference_y = tank.y - tank.planet_y;
     let norm_diff = Math.sqrt(Math.pow(difference_x,2) + Math.pow(difference_y,2));
     difference_x /= norm_diff;
     difference_y /= norm_diff;
+
+    //Adjust for the fact that centerX and centerY is currently actually the /bottom/ of the tank, but we need them to represent the center
+    centerX += difference_x * (sprites.GREYBODY1_SPRITE.height/2 - 1);
+    centerY += difference_y * (sprites.GREYBODY1_SPRITE.height/2 - 1);
+
     // Turret
     let turret_angle = Math.PI + (tank.angle + tank.longitude) * Math.PI/180;
     rotateAndDrawImage(graph, sprites.TURRET1_SPRITE, turret_angle, centerX, centerY, 0, 0);
@@ -432,12 +437,20 @@ function drawTank(tank){
     // Tank Body
     rotateAndDrawImage(graph, sprites.GREYBODY1_SPRITE, render_angle, centerX, centerY, 0, 0);
 
+    //Draw line from planet core to center of tank, for debugging
+    // graph.beginPath();
+    // graph.moveTo(centerX,centerY);
+    // graph.lineTo(centerX - norm_diff * difference_x, centerY - norm_diff * difference_y)
+    // graph.stroke();
+
+
 }
 
 function drawPlanet(planet){
 
     let centerX = planet.x - player.x + global.screenWidth / 2
     let centerY = planet.y - player.y + global.screenHeight / 2
+
 
 
     graph.strokeStyle = 'hsl(' + planet.hue + ', 100%, 45%)';
@@ -464,14 +477,19 @@ function drawPlanet(planet){
 
     for (var i = 0; i < planet.number_of_altitudes; i++) {
         theta = (i / planet.number_of_altitudes) * 2 * Math.PI;
-        x = centerX + planet.altitudes[i] * Math.sin(theta);
-        y = centerY + planet.altitudes[i] * Math.cos(theta);
+        x = centerX + planet.altitudes[i] * Math.cos(theta);
+        y = centerY + planet.altitudes[i] * Math.sin(theta);
         graph.lineTo(x, y);
     }
 
     graph.closePath();
     graph.stroke();
     graph.fill();
+
+
+    //Planet center for debugging
+    graph.fillStyle = 'hsl(' + planet.hue + ', 100%, 50%)';
+    graph.fillRect(centerX- 5/2, centerY-5/2,5,5);
 
 }
 

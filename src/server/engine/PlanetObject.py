@@ -14,6 +14,7 @@ class PlanetGenerationAlgo(Enum):
     """Determines the noise algorithm used to generate planet terrain"""
     FractalNoise = auto()
     PlanetaryNoise = auto()
+    Circular = auto()
 
 
 class PlanetObject(Object):
@@ -32,6 +33,12 @@ class PlanetObject(Object):
         self.maximum_altitude_sphere: Sphere = Sphere(position, np.max(self.altitudes))
         self.core_sphere = Sphere(position, self.core_radius)
         self.mass = float(np.sum(self.altitudes))
+
+    def generate_circular_terrain(self):
+        self.altitudes = self.sealevel_radius * np.ones_like(self.altitudes)
+
+    def generate_spiral_terrain(self):
+        self.altitudes = self.sealevel_radius / self.number_of_altitudes * np.arange(self.number_of_altitudes)
 
     def generate_noise_fractal_naive(self, num_iterations: int, step_size: float):
         """
@@ -72,7 +79,8 @@ class PlanetObject(Object):
         self.minimum_altitude = np.min(self.altitudes)
 
         # Scale the heights so that mountains are in the right range. Then add sealevel_radius.
-        self.altitudes = self.altitudes * tallest_mount_altitude / (self.maximum_altitude - self.minimum_altitude) + self.sealevel_radius
+        self.altitudes = self.altitudes * tallest_mount_altitude / (
+                    self.maximum_altitude - self.minimum_altitude) + self.sealevel_radius
         self.altitudes = self.altitudes.astype(int)
 
         self.maximum_altitude = np.max(self.altitudes)
