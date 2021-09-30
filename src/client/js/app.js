@@ -122,6 +122,7 @@ var viruses = [];
 var fireFood = [];
 var users = [];
 let planets = []
+let bullets = [];
 var leaderboard = [];
 var target = {x: player.x, y: player.y};
 global.target = target;
@@ -165,6 +166,7 @@ sprites = {
     GREYBODY1_SPRITE: load_image('/img/tanks_tankGrey_body1.png'),
     TURRET1_SPRITE: load_image('/img/tanks_turret1.png'),
     TREADS1_SPRITE: load_image('/img/tanks_tankTracks1.png'),
+    BULLET_SPRITE: load_image('/img/BulletSprites/tank_bullet1.png')
 }
 
 
@@ -307,9 +309,17 @@ function setupSocket(socket) {
                 users.push(data)
             }
 
+        } else if (data.sprite == 'SpriteType.BULLET_SPRITE') {
+            //console.log('got bullet')
+            bullets.push(data)
+        } else {
+            console.log('weird update:', data)
         }
     })
 
+    socket.on('update-bullets', function(bulletList){
+        bullets = bulletList
+    });
     // Handle movement.
     socket.on('-serverTellPlayerMove', function (data) {
         userData = data[0];
@@ -397,14 +407,12 @@ function drawFood(food) {
                food.radius, global.foodSides);
 }
 
-function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX, axisY){
+function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX=0, axisY=0){
     context.save()
     context.translate( positionX , positionY);
     context.rotate( angleInRadians );
     context.translate(- image.width/2, - image.height/2)
     context.drawImage( image, -axisX, -axisY  );
-    // context.rotate( -angleInRadians );
-    // context.translate( -positionX, -positionY );
     context.restore()
 }
 
@@ -447,11 +455,8 @@ function drawTank(tank){
 }
 
 function drawPlanet(planet){
-
     let centerX = planet.x - player.x + global.screenWidth / 2
     let centerY = planet.y - player.y + global.screenHeight / 2
-
-
 
     graph.strokeStyle = 'hsl(' + planet.hue + ', 100%, 45%)';
     let gradient = graph.createRadialGradient(centerX, centerY, planet.core_radius, centerX, centerY, planet.sealevel_radius);
@@ -488,11 +493,19 @@ function drawPlanet(planet){
 
 
     //Planet center for debugging
-    graph.fillStyle = 'hsl(' + planet.hue + ', 100%, 50%)';
-    graph.fillRect(centerX- 5/2, centerY-5/2,5,5);
-
+    // graph.fillStyle = 'hsl(' + planet.hue + ', 100%, 50%)';
+    // graph.fillRect(centerX- 5/2, centerY-5/2,5,5);
 }
 
+function drawBullet(bullet){
+    //console.log('drawing bullet');
+    let centerX = bullet.x - player.x + global.screenWidth / 2;
+    let centerY = bullet.y - player.y + global.screenHeight / 2;
+    let sprite_name = bullet.sprite.substring(11); //The string passed includes 'SpriteType.' before the name
+    // console.log(sprite_name)
+    // console.log(sprites[sprite_name], bullet.roll, centerX, centerY)
+    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, centerX, centerY,0,0)
+}
 
 function drawVirus(virus) {
     graph.strokeStyle = virus.stroke;
@@ -719,21 +732,23 @@ function gameLoop() {
 
             //drawgrid();
             //foods.forEach(drawFood);
-            planets.forEach(drawPlanet)
             //fireFood.forEach(drawFireFood);
             //viruses.forEach(drawVirus);
-            users.forEach(drawTank)
+            planets.forEach(drawPlanet)
+            users.forEach(drawTank);
+            bullets.forEach(drawBullet);
+            //bullets = []; //Hacky way to empty out the bullets to render
 
             if (global.borderDraw) {
                 drawborder();
             }
-            var orderMass = [];
-            for(var i=0; i<users.length; i++) {
-                orderMass.push({
-                        nCell: i,
-                        nDiv: 0,
-                    });
-            }
+            // var orderMass = [];
+            // for(var i=0; i<users.length; i++) {
+            //     orderMass.push({
+            //             nCell: i,
+            //             nDiv: 0,
+            //         });
+            // }
 
             //drawPlayers(orderMass);
             socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".

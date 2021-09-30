@@ -26,7 +26,7 @@ sockets = object_manager.sockets
 for _ in range(1):
     object_manager.create_planet(
         position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
-        radius=randint(50, 500))
+        radius=randint(500, 1000))
 
 
 @sio.event
@@ -162,6 +162,10 @@ async def angle_left(sid):
 @sio.event
 async def angle_right(sid):
     object_manager.angle_right(sid)
+
+@sio.event
+async def fire_gun(sid):
+    object_manager.fire_gun_sid(sid)
 
 
 async def send_objects_initial(*args, **kwargs):

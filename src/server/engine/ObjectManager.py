@@ -1,9 +1,12 @@
+from datetime import datetime
+from random import random
 from typing import List, Dict
 
 from socketio import AsyncServer
 
+from . import Common
 from .BulletObject import BulletObject
-from .Config import ConfigData, gravity_constant
+from .Config import ConfigData, gravity_constant, turns_enabled
 from .PlanetObject import PlanetObject
 from .SpriteType import SpriteType
 from .TankObject import TankObject
@@ -56,7 +59,10 @@ class ObjectManager:
         :param trail_color:
         :return:
         """
-        pass
+        bullet = BulletObject(position, bullet_sprite)
+        self.bullets.append(bullet)
+        return bullet
+
 
     def create_phantom_bullet(self, bullet, position, velocity, owner) -> float:
         """
@@ -79,7 +85,8 @@ class ObjectManager:
             if self.at_world_edge(old_position):
                 bullet.kill()
             bullet.acceleration = self.calculate_gravity(old_position)
-            print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
+            # print('Bullet position:', bullet.position, abs(bullet.position))
+            # print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
             bullet.move()
 
         for sid, tank in self.tanks.items():
@@ -89,12 +96,22 @@ class ObjectManager:
 
         # TODO: Do object collision detection and response
         # TODO: Remove dead objects from the lists so we don't have to worry about them in the future.
+        for bullet in self.bullets:
+            if bullet.dead:
+                self.bullets.remove(bullet)
 
-    def calculate_gravity(self, oldpos) -> Vector:
-        pass
+    def calculate_gravity(self, position) -> Vector:
+        acceleration: Vector = Vector(0, 0)
+        for _, planet in self.planets.items():
+            difference: Vector = planet.position-position
+            mag = abs(difference)
+            unit = difference/mag
+
+            acceleration += gravity_constant * planet.mass / mag**2 * unit
+        return acceleration
 
     def at_world_edge(self, oldpos) -> bool:
-        pass
+        return False
 
     async def send_objects_initial(self, sio: AsyncServer, *args, **kwargs):
         for planet in self.planets.values():
@@ -109,6 +126,14 @@ class ObjectManager:
 
         for user in self.users:
             await user.emit_changes(self.tanks, sio, *args, **kwargs)
+
+        # It creates rendering issues (graphical stuttering) when we send the bullets one at a time.
+        # Avoid this by sending all in one msg.
+        await sio.emit('update-bullets',
+                       [bullet.get_json() for bullet in self.bullets],
+                       *args, **kwargs)
+        # for bullet in self.bullets:
+            # await bullet.emit_changes(sio)
 
         for u in self.users:
             # center the view if x/y is undefined, this will happen for spectators
@@ -151,3 +176,77 @@ class ObjectManager:
 
     def angle_right(self, sid):
         self.tanks[sid].rotation_speed = 1
+
+    def fire_gun(self, bullet: SpriteType, owner: TankObject) -> None:
+        """
+        Create a bullet object and a flash particle effect.
+        It is assumed that the object is round and that the bullet
+        appears at the edge of the object in the direction
+        that it is facing and continues moving in that direction.
+        :param owner:
+        :param bullet: sprite type of the bullet
+        :return:
+        """
+
+        if owner.dead:  # We don't want to shoot if we're supposed to be dead.
+            return
+        # TODO: Play audio
+
+        view: Vector = -owner.view_vector
+        pos: Vector = owner.position
+
+        # Set camera and control lock
+
+        if turns_enabled:
+            Common.control_lock = True
+            Common.camera_mode = Common.CameraMode.BULLET_LOCKED
+
+        bullet = self.create_bullet(bullet, pos, owner.hue)
+        bullet.owner = owner
+
+        norm: Vector = Vector(view.y, -view.x)  # normal to direction
+        m: float = 2 * random() - 1
+        deflection = Vector(0, 0)
+
+        bullet.velocity = owner.power * (view + deflection)  # Power is the starting velocity
+        bullet.roll = owner.roll
+
+        if owner.selected_bullet not in (0, 1):
+            owner.bullet_counts[owner.selected_bullet] -= 1
+        while not owner.bullet_counts[owner.selected_bullet]:
+            owner.next_bullet_type()
+
+        owner.gun_timer = datetime.now().timestamp()
+
+        # TODO: Gunfire particle effect on client side
+
+    def fire_phantom_gun(self, bullet: SpriteType, orientation: Vector, power: float, owner: TankObject,
+                         position: Vector = Vector(0, 0)) -> float:
+        """
+
+        :param bullet:
+        :param orientation:
+        :param power:
+        :param owner:
+        :param position:
+        :return:
+        """
+        if position == Vector(0, 0):  # In the default case, use the current position
+            position = owner.position
+        position = position + .5 * owner.collision_radius * orientation
+        power = owner.power
+
+        # to get better results, we should average this over a couple shots with adjusted angles/power.
+        # The physics simulations will mess us up quite frequently.
+        num_simulations: int = 3
+        running_distance_sum: float = 0
+        for i in range(num_simulations):
+            if i:
+                power /= 1.01
+                velocity = owner.velocity + power * orientation  # Power is the starting velocity
+                running_distance_sum += self.create_phantom_bullet(bullet, position, velocity, owner)
+        return running_distance_sum / num_simulations
+
+    def fire_gun_sid(self, sid):
+        tank = self.tanks[sid]
+        self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)

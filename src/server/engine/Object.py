@@ -71,7 +71,7 @@ class Object:
         # Improved accuracy could probably be found in doing a Runge Kutta integration, but that's way more work than
         # I want to commit today.
         self.velocity += self.acceleration * dt
-        self.position = self.velocity * dt
+        self.position += self.velocity * dt
         self.collision_sphere.center = self.position
 
     def collision_response(self):

@@ -112,65 +112,7 @@ class TankObject(Object):
         if color:
             self.hue = color
 
-    def fire_gun(self, bullet: SpriteType) -> None:
-        """
-        Create a bullet object and a flash particle effect.
-        It is assumed that the object is round and that the bullet
-        appears at the edge of the object in the direction
-        that it is facing and continues moving in that direction.
-        :param bullet: sprite type of the bullet
-        :return:
-        """
 
-        if self.dead:  # We don't want to shoot if we're supposed to be dead.
-            return
-        # TODO: Play audio
-
-        view: Vector = self.view_vector
-        pos: Vector = self.position
-
-        # Set camera and control lock
-
-        if turns_enabled:
-            Common.control_lock = True
-            Common.camera_mode = Common.CameraMode.BULLET_LOCKED
-
-        bullet = Common.object_manager.create_bullet(bullet, pos, self.hue)
-        bullet.owner = self
-
-        norm: Vector = Vector(view.y, -view.x)  # normal to direction
-        m: float = 2 * random() - 1
-        deflection = Vector(0, 0)
-
-        bullet.velocity = self.power * (view + deflection)  # Power is the starting velocity
-        bullet.roll = self.roll
-
-        if self.selected_bullet not in (0, 1):
-            self.bullet_counts[self.selected_bullet] -= 1
-        while not self.bullet_counts[self.selected_bullet]:
-            self.next_bullet_type()
-
-        self.gun_timer = datetime.datetime.now().timestamp()
-
-        # TODO: Gunfire particle effect on client side
-
-    def fire_phantom_gun(self, bullet: SpriteType, orientation: Vector, power: float,
-                         position: Vector = Vector(0, 0)) -> float:
-        if position == Vector(0, 0):  # In the default case, use the current position
-            position = self.position
-        position = position + .5 * self.collision_radius * orientation
-        power = self.power
-
-        # to get better results, we should average this over a couple shots with adjusted angles/power.
-        # The physics simulations will mess us up quite frequently.
-        num_simulations: int = 3
-        running_distance_sum: float = 0
-        for i in range(num_simulations):
-            if i:
-                power /= 1.01
-                velocity = self.velocity + power * orientation  # Power is the starting velocity
-                running_distance_sum += Common.object_manager.create_phantom_bullet(bullet, position, velocity, self)
-        return running_distance_sum / num_simulations
 
     def take_damage(self, damage: int):
         """
