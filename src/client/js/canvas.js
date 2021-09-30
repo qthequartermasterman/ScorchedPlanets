@@ -24,6 +24,15 @@ class Canvas {
         this.cv.addEventListener('touchmove', this.touchInput, false);
         this.cv.parent = self;
         global.canvas = this;
+
+        setInterval(()=>{
+            for (let i =0; i < self.directions.length; i++){
+                if (self.directions[i] == global.KEY_LEFT){
+                    self.socket.emit('strafe_left')
+                } else if (self.directions[i] == global.KEY_RIGHT){
+                    self.socket.emit('strafe_right')
+                }
+            }}, 10)
     }
 
     // Function called when a key is pressed, will change direction if arrow key.

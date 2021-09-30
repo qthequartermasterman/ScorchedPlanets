@@ -104,7 +104,6 @@ class ObjectManager:
 
     async def send_updates(self, sio: AsyncServer, *args, **kwargs):
         # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
-
         for planet in self.planets.values():
             await planet.emit_changes(sio, *args, **kwargs)
 
@@ -134,3 +133,15 @@ class ObjectManager:
             user_transmit = [user_mapping_function(x) for x in self.users]
             sid = self.sockets[u.id]
             await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
+
+    def strafe_right(self, sid):
+        self.tanks[sid].strafe_right = True
+
+    def strafe_left(self, sid):
+        self.tanks[sid].strafe_left = True
+
+    def remove_player(self, sid):
+        del self.tanks[sid]
+        for i in range(len(self.users)):
+            if self.users[i].id == sid:
+                del self.users[i]

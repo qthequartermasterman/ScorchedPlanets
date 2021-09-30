@@ -260,13 +260,58 @@ function setupSocket(socket) {
     });
 
     socket.on('initial', function(data){
+        console.log('initial', data)
         if (data.sprite === 'SpriteType.PLANET_SPRITE'){
             planets.push(data)
+        } else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
+            console.log('pushing user', data.id)
+            users.push(data)
         }
     });
 
+    socket.on('update', function(data){
+        //console.log('updating', data)
+        if (data.sprite === 'SpriteType.PLANET_SPRITE'){
+            //planets.push(data)
+        } else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
+            let found_user;
+            for (let i = 0; i < users.length; i++){
+                //console.log(i)
+                if (users[i].id == data.id){
+                    found_user = true;
+                    // Update the user data
+                    users[i].x = data.x;
+                    users[i].y = data.y;
+                    users[i].planet_x = data.planet_x;
+                    users[i].planet_y = data.planet_y;
+                    users[i].angle = data.angle;
+                    users[i].longitude = data.longitude;
+                    break;
+                }
+
+            }
+            for (let i = 0; i < users.length; i++) {
+                if (users[i].id == socket.id) {
+                    //console.log('found player')
+                    var xoffset = player.x - users[i].x;
+                    var yoffset = player.y - users[i].y;
+
+                    player.x = users[i].x;
+                    player.y = users[i].y;
+                    player.hue = users[i].hue;
+                    player.xoffset = isNaN(xoffset) ? 0 : xoffset;
+                    player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+                }
+            }
+            if (!found_user){
+                users.push(data)
+            }
+
+        }
+    })
+
     // Handle movement.
-    socket.on('serverTellPlayerMove', function (data) {
+    socket.on('-serverTellPlayerMove', function (data) {
         userData = data[0];
         foodsList = data[1];
         massList = data[2];
@@ -290,7 +335,7 @@ function setupSocket(socket) {
             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
         }
-        users = userData;
+        //users = userData;
         foods = foodsList;
         viruses = virusList;
         fireFood = massList;
@@ -353,11 +398,13 @@ function drawFood(food) {
 }
 
 function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX, axisY){
+    context.save()
     context.translate( positionX, positionY );
     context.rotate( angleInRadians );
     context.drawImage( image, -axisX, -axisY );
-    context.rotate( -angleInRadians );
-    context.translate( -positionX, -positionY );
+    // context.rotate( -angleInRadians );
+    // context.translate( -positionX, -positionY );
+    context.restore()
 }
 
 
@@ -646,6 +693,7 @@ function gameLoop() {
         if (global.gameStart) {
             //graph.fillStyle = global.backgroundColor;
             //graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
+            graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
 
             //drawgrid();
             //foods.forEach(drawFood);
@@ -665,7 +713,7 @@ function gameLoop() {
                     });
             }
 
-            drawPlayers(orderMass);
+            //drawPlayers(orderMass);
             socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
 
         } else {

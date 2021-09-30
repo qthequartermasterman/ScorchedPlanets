@@ -51,6 +51,12 @@ async def connect(sid, socket, auth):
             target=Vector(0, 0)
         )
 
+@sio.event
+async def disconnect(sid):
+    print('A user disconnected!', sid)
+    object_manager.remove_player(sid)
+    # TODO: Alert other users that sid has disconnected and to remove their sprite
+
 
 @sio.event
 async def gotit(sid, player):
@@ -143,6 +149,16 @@ async def heartbeat(sid, target):
         session["currentPlayer"].lastHeartbeat = datetime.now().timestamp()
         if target['x'] != session["currentPlayer"].x or target['y'] != session["currentPlayer"].y:
             session["currentPlayer"].target = Vector(**target)
+
+@sio.event
+async def strafe_left(sid):
+    print(f'{sid} is moving left')
+    object_manager.strafe_left(sid)
+
+@sio.event
+async def strafe_right(sid):
+    print(f'{sid} is moving right')
+    object_manager.strafe_right(sid)
 
 
 async def send_objects_initial(*args, **kwargs):

@@ -41,7 +41,7 @@ class TankAnimationState(Enum):
 
 class TankObject(Object):
     def __init__(self, longitude: float, planet: PlanetObject, color: str = None, angle: float = 0):
-        super().__init__(Vector(0, 0))
+        super().__init__(Vector(0, 0), sprite_type=SpriteType.GREY1_SPRITE)
         self.home_planet = planet
         self.longitude = longitude
         self.angle: float = angle  # Angle at which the turret gun is pointing
