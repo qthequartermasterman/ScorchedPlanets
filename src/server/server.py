@@ -23,12 +23,7 @@ sio.attach(app)
 object_manager = ObjectManager()
 users = object_manager.users
 sockets = object_manager.sockets
-# planets = dict()
-# tanks: Dict[str, TankObject] = dict()
 for _ in range(1):
-    # planet = PlanetObject(Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
-    #                       randint(0, 500))
-    # planets[planet.id] = planet
     object_manager.create_planet(
         position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
         radius=randint(50, 500))

@@ -209,9 +209,9 @@ class TankObject(Object):
         delta: float = 40 * t
 
         if self.strafe_left:
-            self.longitude += delta
-        elif self.strafe_right:
             self.longitude -= delta
+        elif self.strafe_right:
+            self.longitude += delta
         self.longitude = self.longitude % 360
 
         planet_center: Vector = self.home_planet.position
