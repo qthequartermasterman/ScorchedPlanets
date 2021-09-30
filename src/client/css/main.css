@@ -259,9 +259,8 @@ div {
     opacity: 0;
 
 
-    /*background-color: #222222;*/
-    background-color: white;
-    /*background-image: url('/img/starfields/starfield2.jpg');*/
+    background-color: #222222;
+    background-image: url('/img/starfields/starfield2.jpg');
     background-size: cover;
     -webkit-background-size: cover;
     -moz-background-size: cover;

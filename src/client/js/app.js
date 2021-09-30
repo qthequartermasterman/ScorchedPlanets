@@ -96,7 +96,7 @@ window.onload = function() {
 // TODO: Break out into GameControls.
 
 var foodConfig = {
-    border: 0,
+    border: 10,
 };
 
 var playerConfig = {
@@ -458,7 +458,8 @@ function drawPlanet(planet){
     let centerX = planet.x - player.x + global.screenWidth / 2
     let centerY = planet.y - player.y + global.screenHeight / 2
 
-    graph.strokeStyle = 'hsl(' + planet.hue + ', 100%, 45%)';
+    //graph.strokeStyle = 'hsl(' + planet.hue + ', 100%, 45%)';
+    graph.strokeStyle= 'grey';
     let gradient = graph.createRadialGradient(centerX, centerY, planet.core_radius, centerX, centerY, planet.sealevel_radius);
     gradient.addColorStop(0, "yellow");
     gradient.addColorStop(1 - 5000/6370, '#E2D61D') //inner core
