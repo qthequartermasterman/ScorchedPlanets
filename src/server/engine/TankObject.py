@@ -232,6 +232,8 @@ class TankObject(Object):
 
         self.strafe_right = self.strafe_left = False
         self.collision_sphere.center = self.position
+        self.rotation_speed = 0
+
 
     def next_bullet_type(self) -> SpriteType:
         """
@@ -291,6 +293,8 @@ class TankObject(Object):
                 'y': self.position.y,
                 'planet_x': self.home_planet.position.x,
                 'planet_y': self.home_planet.position.y,
+                'tread_x':1,
+                'tread_y':1,
                 'angle': self.angle,
                 'longitude': self.longitude, }
 

@@ -155,6 +155,14 @@ async def strafe_right(sid):
     print(f'{sid} is moving right')
     object_manager.strafe_right(sid)
 
+@sio.event
+async def angle_left(sid):
+    object_manager.angle_left(sid)
+
+@sio.event
+async def angle_right(sid):
+    object_manager.angle_right(sid)
+
 
 async def send_objects_initial(*args, **kwargs):
     return await object_manager.send_objects_initial(sio, *args, **kwargs)

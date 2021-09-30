@@ -145,3 +145,9 @@ class ObjectManager:
         for i in range(len(self.users)):
             if self.users[i].id == sid:
                 del self.users[i]
+
+    def angle_left(self, sid):
+        self.tanks[sid].rotation_speed = 1
+
+    def angle_right(self, sid):
+        self.tanks[sid].rotation_speed = -1

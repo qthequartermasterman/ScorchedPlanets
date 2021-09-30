@@ -399,9 +399,10 @@ function drawFood(food) {
 
 function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX, axisY){
     context.save()
-    context.translate( positionX, positionY );
+    context.translate( positionX , positionY);
     context.rotate( angleInRadians );
-    context.drawImage( image, -axisX, -axisY );
+    context.translate(- image.width/2, - image.height/2)
+    context.drawImage( image, -axisX, -axisY  );
     // context.rotate( -angleInRadians );
     // context.translate( -positionX, -positionY );
     context.restore()
@@ -414,6 +415,9 @@ function drawTank(tank){
 
     let difference_x = tank.x - tank.planet_x;
     let difference_y = tank.y - tank.planet_y;
+    let norm_diff = Math.sqrt(Math.pow(difference_x,2) + Math.pow(difference_y,2));
+    difference_x /= norm_diff;
+    difference_y /= norm_diff;
     // Turret
     let turret_angle = Math.PI + (tank.angle + tank.longitude) * Math.PI/180;
     rotateAndDrawImage(graph, sprites.TURRET1_SPRITE, turret_angle, centerX, centerY, 0, 0);
@@ -421,9 +425,9 @@ function drawTank(tank){
     // Treads
     let render_angle = Math.PI + tank.longitude * Math.PI/180;
     let height = sprites.TREADS1_SPRITE.height
-    let tread_x = centerX - .3 *height*difference_x;
-    let tread_y = centerX - .3 * height * difference_y;
-    rotateAndDrawImage(graph, sprites.TREADS1_SPRITE, render_angle, tread_x, tread_y, 0, 0);
+    let tread_x =  .3 * height * difference_x;
+    let tread_y =  .3 * height * difference_y;
+    rotateAndDrawImage(graph, sprites.TREADS1_SPRITE, render_angle, centerX -tread_x, centerY-tread_y, 0, 0);
 
     // Tank Body
     rotateAndDrawImage(graph, sprites.GREYBODY1_SPRITE, render_angle, centerX, centerY, 0, 0);

@@ -28,9 +28,13 @@ class Canvas {
         setInterval(()=>{
             for (let i =0; i < self.directions.length; i++){
                 if (self.directions[i] == global.KEY_A){ // KEY_A is used to move left, since KEY_LEFT is spin turret
-                    self.socket.emit('strafe_left')
+                    self.socket.emit('strafe_left');
                 } else if (self.directions[i] == global.KEY_D){ // KEY_D is used to move left, since KEY_RIGHT is spin turret
-                    self.socket.emit('strafe_right')
+                    self.socket.emit('strafe_right');
+                } else if (self.directions[i]==global.KEY_LEFT){
+                    self.socket.emit('angle_left');
+                } else if (self.directions[i]==global.KEY_RIGHT){
+                    self.socket.emit('angle_right');
                 }
             }}, 10)
     }
