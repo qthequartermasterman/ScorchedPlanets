@@ -147,7 +147,7 @@ class ObjectManager:
                 del self.users[i]
 
     def angle_left(self, sid):
-        self.tanks[sid].rotation_speed = 1
+        self.tanks[sid].rotation_speed = -1
 
     def angle_right(self, sid):
-        self.tanks[sid].rotation_speed = -1
+        self.tanks[sid].rotation_speed = 1
