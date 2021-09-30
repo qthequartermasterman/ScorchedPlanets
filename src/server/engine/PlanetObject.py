@@ -110,7 +110,7 @@ class PlanetObject(Object):
             direction = UnitVector(angle)
             length = self.altitudes[i]
 
-            intersects, first_intersection, second_intersection = object_boundary.Intersects(origin, direction)
+            intersects, first_intersection, second_intersection = object_boundary.intersects_line(origin, direction)
 
             if length > self.core_radius + 5 and intersects and length >= first_intersection:
                 self.altitudes[i] = max(first_intersection, length - second_intersection)

@@ -147,12 +147,12 @@ async def heartbeat(sid, target):
 
 @sio.event
 async def strafe_left(sid):
-    print(f'{sid} is moving left')
+    # print(f'{sid} is moving left')
     object_manager.strafe_left(sid)
 
 @sio.event
 async def strafe_right(sid):
-    print(f'{sid} is moving right')
+    # print(f'{sid} is moving right')
     object_manager.strafe_right(sid)
 
 @sio.event
@@ -187,7 +187,7 @@ async def tickPlayer(currentPlayer):
 
 
 async def moveloop():
-    return object_manager.move()
+    return await object_manager.move(sio)
 
 
 async def gameloop():

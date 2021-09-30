@@ -428,8 +428,8 @@ function drawTank(tank){
     difference_y /= norm_diff;
 
     //Adjust for the fact that centerX and centerY is currently actually the /bottom/ of the tank, but we need them to represent the center
-    centerX += difference_x * (sprites.GREYBODY1_SPRITE.height/2 - 1);
-    centerY += difference_y * (sprites.GREYBODY1_SPRITE.height/2 - 1);
+    //centerX += difference_x * (sprites.GREYBODY1_SPRITE.height/2 - 1);
+    //centerY += difference_y * (sprites.GREYBODY1_SPRITE.height/2 - 1);
 
     // Turret
     let turret_angle = Math.PI + (tank.angle + tank.longitude) * Math.PI/180;

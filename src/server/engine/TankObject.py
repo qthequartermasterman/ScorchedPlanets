@@ -55,6 +55,7 @@ class TankObject(Object):
         direction = UnitVector(longitude)
         altitude = planet.get_altitude_at_angle(longitude)
         self.position = planet_center + (altitude + self.collision_radius) * direction
+        self.collision_radius: float = 35
 
         # AI private variables
         self.is_player_character: bool = False
@@ -112,8 +113,6 @@ class TankObject(Object):
         if color:
             self.hue = color
 
-
-
     def take_damage(self, damage: int):
         """
         Decrease the health points by damage. Returns the current health point after damage is taken. Kills the tank
@@ -121,11 +120,12 @@ class TankObject(Object):
         :param damage: is the number of hp to reduce.
         :return: the number of health_points after taking damage.
         """
+        print('Tank took damage!')
         # The volume with which we will play the "OW" sound. It'll be loud if it does more relative damage.
-        volume = damage / self.health_points
-        self.health_points -= damage
+        # volume = damage / self.health_points
+        # self.health_points -= damage
         if self.health_points <= 0:
-            self.current_state = TankState.dead
+            self.current_state = TankState.Dead
             self.kill()
         # TODO: Play audio
         return self.health_points
@@ -175,7 +175,6 @@ class TankObject(Object):
         self.strafe_right = self.strafe_left = False
         self.collision_sphere.center = self.position
         self.rotation_speed = 0
-
 
     def next_bullet_type(self) -> SpriteType:
         """
@@ -235,8 +234,8 @@ class TankObject(Object):
                 'y': self.position.y,
                 'planet_x': self.home_planet.position.x,
                 'planet_y': self.home_planet.position.y,
-                'tread_x':1,
-                'tread_y':1,
+                'tread_x': 1,
+                'tread_y': 1,
                 'angle': self.angle,
                 'longitude': self.longitude, }
 

@@ -32,7 +32,7 @@ class Object:
         # debugging physics precision.
         self.old_energy: float = -1
         self.collision_radius: float = 0
-        self.collision_sphere: Sphere = Sphere(self.position, self.collision_radius)
+        # self._collision_sphere: Sphere = Sphere(self.position, self.collision_radius)
 
         self.gun_timer: float = 0
         self.smoke_timer: float = 0
@@ -49,6 +49,9 @@ class Object:
         # queued changes to send via the socket
         self.changes_queue = Queue()
 
+    @property
+    def collision_sphere(self) -> Sphere:
+        return Sphere(self.position, self.collision_radius)
 
     @property
     def speed(self):

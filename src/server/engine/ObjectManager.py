@@ -1,6 +1,7 @@
 from datetime import datetime
 from random import random
 from typing import List, Dict
+from itertools import product
 
 from socketio import AsyncServer
 
@@ -74,7 +75,7 @@ class ObjectManager:
         :return:
         """
 
-    def move(self):
+    async def move(self, server: AsyncServer):
         """
         Move all of the objects and perform collision detection and response
         :return:
@@ -94,11 +95,8 @@ class ObjectManager:
             tank.think()
             tank.move()
 
-        # TODO: Do object collision detection and response
-        # TODO: Remove dead objects from the lists so we don't have to worry about them in the future.
-        for bullet in self.bullets:
-            if bullet.dead:
-                self.bullets.remove(bullet)
+        self.collision_phase()
+        await self.cull_dead_objects(server)
 
     def calculate_gravity(self, position) -> Vector:
         acceleration: Vector = Vector(0, 0)
@@ -160,13 +158,22 @@ class ObjectManager:
             await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
 
     def strafe_right(self, sid):
-        self.tanks[sid].strafe_right = True
+        try:
+            self.tanks[sid].strafe_right = True
+        except KeyError:  # Dead player trying to move. Avoid crash
+            pass
 
     def strafe_left(self, sid):
-        self.tanks[sid].strafe_left = True
+        try:
+            self.tanks[sid].strafe_left = True
+        except KeyError:  # Dead player trying to move. Avoid crash
+            pass
 
     def remove_player(self, sid):
-        del self.tanks[sid]
+        try:
+            del self.tanks[sid]
+        except KeyError:
+            pass
         for i in range(len(self.users)):
             if self.users[i].id == sid:
                 self.users.pop(i)
@@ -248,5 +255,29 @@ class ObjectManager:
         return running_distance_sum / num_simulations
 
     def fire_gun_sid(self, sid):
-        tank = self.tanks[sid]
-        self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
+        try:
+            tank = self.tanks[sid]
+            self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
+        except KeyError:  # If no tank shows up with that sid, then they are dead
+            pass
+
+    def collision_phase(self):
+        for bullet, tank in product(self.bullets, list(self.tanks.values())):
+            intersects, _, _ = bullet.collision_sphere.intersects_circle(tank.collision_sphere)
+            if intersects and tank != bullet.owner:
+                # If the bullet intersects a tank
+                # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
+                # shot them.
+                bullet.kill()
+                tank.take_damage(bullet.damage)
+
+    async def cull_dead_objects(self, server: AsyncServer):
+        await self.send_updates(server)
+        dead_bullets = [bullet for bullet in self.bullets if bullet.dead]
+        for bullet in dead_bullets:
+            self.bullets.remove(bullet)
+
+        dead_tanks_sids = [sid for sid, tank in self.tanks.items() if tank.dead]
+        for sid in dead_tanks_sids:
+            # self.tanks.pop(sid)
+            self.remove_player(sid)

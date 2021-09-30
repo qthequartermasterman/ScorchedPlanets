@@ -47,7 +47,7 @@ class Sphere:
     center: Vector
     radius: float
 
-    def Intersects(self, origin: Vector, direction: Vector):
+    def intersects_line(self, origin: Vector, direction: Vector):
         """
         Determines whether the sphere intersects with a given line defined by an origin (point on line) and direction
         (all the points in that direction)
@@ -118,3 +118,63 @@ class Sphere:
         points = Vector(x, y0 + sqrt(inside_sqrt)), Vector(x, y0 - sqrt(inside_sqrt))
         first = 0 if abs(points[0] - origin) < abs(points[1] - origin) else 1
         return True, points[first], points[not first]
+
+    def intersects_circle(self, other_sphere) -> (bool, Vector, Vector):
+        """
+        Find intersection points of two spheres
+        :param other_sphere: Sphere object representing the sphere to check intersections
+        :return: (IntersectionExists: bool, FirstIntersectionPoint: Vector, SecondIntersectionPoint: Vector)
+        """
+        # Determine some constants, for easy access
+        center1 = self.center
+        r1 = self.radius
+        center2 = other_sphere.center
+        r2 = other_sphere.radius
+        diff_between_centers = center2 - center1
+        distance_between_centers = abs(diff_between_centers)
+
+        # Determine if the circles even do intersect. There are four cases:
+        # 1. Centers are the same => Cannot intersect (either coincident or one contained in other)
+        # 2. Circles are further apart than the sum of their radius => Cannot intersect (too far apart)
+        # 3. Circles are close than the absolute value of the difference of radius => Cannot intersect(one inside other)
+        # 4. Otherwise => Circles intersect
+        # Note that in the 4th case, we can find two sub-cases, where the circles are tangent (and thus intersect once)
+        # or where the circles intersect twice. Technically, we could just handle the second sub-case, but we separate
+        # them here for computational speed.
+        if (distance_between_centers == 0
+            or distance_between_centers > r1 + r2
+            or distance_between_centers < abs(r1 - r2)
+        ):
+            # 1. Circles that have same center are either coincident or one is contained within the other
+            # OR
+            # 2. Circles are too far apart to intersect
+            # OR
+            # 3. One circle contained in other
+            return False, None, None
+        # For certain, our circles intercept.
+        # Calculate the distance to the intersection area center.
+        distance_recip = (1 / distance_between_centers)
+        dis_to_area_center = (r1 ** 2 - r2 ** 2 + distance_between_centers ** 2) / (2 * distance_between_centers)
+        # Calculate the center of the intersection area
+        center_of_intersection_area = center1 + dis_to_area_center * diff_between_centers * distance_recip
+        if dis_to_area_center == r1:
+            # The two circles are tangent and thus intersect at exactly one point
+            # Technically this check is unnecessary, since the below computation will return two equal points.
+            # But to save on speed, we can just return the center point, since we know that is the single
+            # intersection point
+            return True, center_of_intersection_area, center_of_intersection_area
+        # Two circles intersect at two points
+        height = sqrt(r1 ** 2 - dis_to_area_center ** 2)
+        x2 = center_of_intersection_area.x
+        y2 = center_of_intersection_area.y
+        diff_y = center2.y - center1.y
+        diff_x = center2.x - center1.x
+        height_times_distance_recip = height * distance_recip
+        y_displacement = diff_y * height_times_distance_recip
+        x_displacement = diff_x * height_times_distance_recip
+
+        x3 = x2 + y_displacement
+        y3 = y2 - x_displacement
+        x4 = x2 - y_displacement
+        y4 = y2 + x_displacement
+        return True, Vector(x3, y3), Vector(x4, y4)

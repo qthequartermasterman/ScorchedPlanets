@@ -19,12 +19,13 @@ class BulletObject(Object):
 
         # Kills itself after this many seconds. -1 means it lives until it collides with something
         # Normally 30 seconds. Some bullets may defer. 5 seconds is too short for game play, but good for testing.
-        self.time_to_live: float = 5  # 30
+        self.time_to_live: float = 30
         self.time_created: float = datetime.now().timestamp()
 
         # Reactions stuff
         self.damage: int = 10
         self.explosion_radius: float = 0
+        self.collision_radius: float = 10
         self.explosion_sprite: SpriteType = SpriteType.WATER_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
         self.bounces: float = 0  # Bounces for bouncing bullet (BULLET7)

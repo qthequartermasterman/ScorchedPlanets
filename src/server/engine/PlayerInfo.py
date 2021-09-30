@@ -31,14 +31,19 @@ class PlayerInfo:
         return PlayerInfo(**dictionary)
 
     async def emit_changes(self, tanks, server: AsyncServer, *args, **kwargs):
-        changes = {'id': self.id,
-                   'name': self.name,
-                   **(tanks[self.id].get_changes())}
-        await server.emit('update', changes, *args, **kwargs)
+        try:
+            changes = {'id': self.id,
+                       'name': self.name,
+                       **(tanks[self.id].get_changes())}
+            await server.emit('update', changes, *args, **kwargs)
+        except KeyError:  # self.id not available in tanks, so the player must be dead.
+            await server.emit('RIP', room=self.id)
 
     async def emit_initial(self, tanks, server: AsyncServer, *args, **kwargs):
-        changes = {'id': self.id,
-                   'name': self.name,
-                   **(tanks[self.id].get_changes())}
-        print(changes)
-        await server.emit('initial', changes, *args, **kwargs)
+        try:
+            changes = {'id': self.id,
+                       'name': self.name,
+                       **(tanks[self.id].get_changes())}
+            await server.emit('update', changes, *args, **kwargs)
+        except KeyError:  # self.id not available in tanks, so the player must be dead.
+            await server.emit('RIP', room=self.id)
