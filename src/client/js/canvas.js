@@ -35,6 +35,10 @@ class Canvas {
                     self.socket.emit('angle_left');
                 } else if (self.directions[i]==global.KEY_RIGHT){
                     self.socket.emit('angle_right');
+                } else if (self.directions[i]==global.KEY_UP){
+                    self.socket.emit('power_up');
+                } else if (self.directions[i]==global.KEY_DOWN){
+                    self.socket.emit('power_down');
                 }
             }}, 10)
     }

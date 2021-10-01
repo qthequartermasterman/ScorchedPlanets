@@ -167,6 +167,12 @@ async def angle_right(sid):
 async def fire_gun(sid):
     object_manager.fire_gun_sid(sid)
 
+@sio.event
+async def power_up(sid):
+    object_manager.power_up(sid)
+@sio.event
+async def power_down(sid):
+    object_manager.power_down(sid)
 
 async def send_objects_initial(*args, **kwargs):
     return await object_manager.send_objects_initial(sio, *args, **kwargs)

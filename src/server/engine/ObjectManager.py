@@ -293,3 +293,21 @@ class ObjectManager:
         for sid in dead_tanks_sids:
             self.tanks.pop(sid)
             await server.emit('RIP', room=sid)
+
+    def power_up(self, sid):
+        try:
+            player = self.tanks[sid]
+            player.power += 2
+            player.power = min(player.power, player.basePower + player.currentFuel)
+        except KeyError:
+            # Player is dead
+            pass
+
+    def power_down(self, sid):
+        try:
+            player = self.tanks[sid]
+            player.power -= 2
+            player.power = max(player.power, 1)
+        except KeyError:
+            # Player is dead
+            pass

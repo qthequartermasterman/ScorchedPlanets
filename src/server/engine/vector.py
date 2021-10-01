@@ -3,56 +3,51 @@ from itertools import combinations
 from math import cos, sin, sqrt
 
 import numpy as np
+from numba.experimental import jitclass
+from numba import float32, njit
 
 
-class Vector(np.ndarray):
-    def __new__(cls, x, y, *args, **kwargs):
-        obj = super().__new__(cls, (2,), *args, **kwargs)
-        obj[0] = x
-        obj[1] = y
-        return obj
-
-    @property
-    def x(self):
-        return self[0]
-
-    @property
-    def y(self):
-        return self[1]
+#@jitclass([('x', float32), ('y', float32)])
+class Vector:
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
 
     def __abs__(self):
         """Magnitude of the vector"""
-        return np.sqrt(self.dot(self))
-
-    def __hash__(self):
-        return hash((self.x, self.y))
+        return sqrt(self.x ** 2 + self.y ** 2)
 
     def __eq__(self, other):
-        return np.allclose(self, other)
-
-    def __ne__(self, other):
-        return not self == other
+        return self.x == other.x and self.y == other.y
 
     def __mul__(self, other):
         if isinstance(other, Vector):
-            return np.dot(self, other)
+            return self.x * other.x + self.y * other.y
         else:
-            return super().__mul__(other)
+            return Vector(other * self.x, other * self.y)
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __add__(self, other):
+        return Vector(other.x + self.x, other.y + self.y)
+
+    def __sub__(self, other):
+        return Vector(self.x - other.x, self.y - other.y)
+
+    def __truediv__(self, other):
+        return 1/other * self
+
+    def __neg__(self):
+        return Vector(-self.x, -self.y)
 
 
-
-class UnitVector(Vector):
-    """Vector with unit length"""
-
-    def __new__(cls, angle: float, dtype=float):
-        """
-
-        :param angle: Angle of the vector from the positive x-axis in radians
-        :param dtype:
-        """
-        return Vector(cos(angle), sin(angle), dtype=dtype)
+#@njit
+def UnitVector(angle: float):
+    return Vector(cos(angle), sin(angle))
 
 
+#@jitclass
 @dataclass
 class Sphere:
     center: Vector
@@ -204,10 +199,9 @@ class Sphere:
         ac = self.center - v0
         ab = v1 - v0
         proj: Vector = ((ac * ab) / (ab * ab)) * ab
-        print(proj)
         d = v0 + proj
 
-        return abs(self.center - d) <= self.radius and abs(proj) <= abs(v1-v0)
+        return abs(self.center - d) <= self.radius and abs(proj) <= abs(v1 - v0)
 
     def intersects_triangle(self, v0, v1, v2):
         # Slow algorithm just checks if any of the line segments intersect.

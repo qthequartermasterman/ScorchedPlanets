@@ -220,15 +220,15 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', function (data) {
-        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b> was eaten.');
+        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> was eaten.');
     });
 
     socket.on('playerDisconnect', function (data) {
-        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b> disconnected.');
+        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> disconnected.');
     });
 
     socket.on('playerJoin', function (data) {
-        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b> joined.');
+        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> joined.');
     });
 
     socket.on('leaderboard', function (data) {
@@ -240,12 +240,12 @@ function setupSocket(socket) {
                 if(leaderboard[i].name.length !== 0)
                     status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
                 else
-                    status += '<span class="me">' + (i + 1) + ". An unnamed cell</span>";
+                    status += '<span class="me">' + (i + 1) + ". An unnamed tank</span>";
             } else {
                 if(leaderboard[i].name.length !== 0)
                     status += (i + 1) + '. ' + leaderboard[i].name;
                 else
-                    status += (i + 1) + '. An unnamed cell';
+                    status += (i + 1) + '. An unnamed tank';
             }
         }
         //status += '<br />Players: ' + data.players;
@@ -274,7 +274,7 @@ function setupSocket(socket) {
     socket.on('update', function(data){
         //console.log('updating', data)
         if (data.sprite === 'SpriteType.PLANET_SPRITE'){
-            console.log(data)
+            //console.log(data)
             let planet;
             for (let j = 0; j < planets.length; j++){
                 if (planets[j].id == data.id){
