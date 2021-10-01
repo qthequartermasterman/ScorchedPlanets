@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from itertools import combinations
 from math import cos, sin, sqrt
 
 import numpy as np
@@ -28,6 +29,16 @@ class Vector(np.ndarray):
 
     def __eq__(self, other):
         return np.allclose(self, other)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __mul__(self, other):
+        if isinstance(other, Vector):
+            return np.dot(self, other)
+        else:
+            return super().__mul__(other)
+
 
 
 class UnitVector(Vector):
@@ -142,8 +153,8 @@ class Sphere:
         # or where the circles intersect twice. Technically, we could just handle the second sub-case, but we separate
         # them here for computational speed.
         if (distance_between_centers == 0
-            or distance_between_centers > r1 + r2
-            or distance_between_centers < abs(r1 - r2)
+                or distance_between_centers > r1 + r2
+                or distance_between_centers < abs(r1 - r2)
         ):
             # 1. Circles that have same center are either coincident or one is contained within the other
             # OR
@@ -178,3 +189,33 @@ class Sphere:
         x4 = x2 - y_displacement
         y4 = y2 + x_displacement
         return True, Vector(x3, y3), Vector(x4, y4)
+
+    def intersects_line_segment(self, v0: Vector, v1: Vector) -> bool:
+        """
+        Check if the circle intersects with line segment between v0 and v1
+        :param v0:
+        :param v1:
+        :return:
+        """
+        # project the vector v0-center onto the line segment.
+        # let d = a + the projection
+        # if |DC| is less than the radius, then the circle must intersect the infinite line
+        # Additionally, if D is between a and b, then the circle intersects the line in the segment at least once
+        ac = self.center - v0
+        ab = v1 - v0
+        proj: Vector = ((ac * ab) / (ab * ab)) * ab
+        print(proj)
+        d = v0 + proj
+
+        return abs(self.center - d) <= self.radius and abs(proj) <= abs(v1-v0)
+
+    def intersects_triangle(self, v0, v1, v2):
+        # Slow algorithm just checks if any of the line segments intersect.
+        # Not terribly slow, but faster algorithms exist, I'm sure.
+        return any(self.intersects_line_segment(vert1, vert2) for vert1, vert2 in combinations((v0, v1, v2), 2))
+
+        # This faster algorithm is inspired by the Separating Axis Theorem
+        # We will choose 3 projection axes: parallel to the center of the circle to each of the 3 vertices
+        # Then if for any of these three tests, the radius (projection of circle) does not intersect with projection of
+        # the triangle, then there exists a separating axis.
+        # The specifics are bit more complicated to hash out and then prove.

@@ -123,7 +123,7 @@ class TankObject(Object):
         print('Tank took damage!')
         # The volume with which we will play the "OW" sound. It'll be loud if it does more relative damage.
         # volume = damage / self.health_points
-        # self.health_points -= damage
+        self.health_points -= damage
         if self.health_points <= 0:
             self.current_state = TankState.Dead
             self.kill()

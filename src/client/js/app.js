@@ -274,42 +274,54 @@ function setupSocket(socket) {
     socket.on('update', function(data){
         //console.log('updating', data)
         if (data.sprite === 'SpriteType.PLANET_SPRITE'){
-            //planets.push(data)
-        } else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
-            let found_user;
-            for (let i = 0; i < users.length; i++){
-                //console.log(i)
-                if (users[i].id == data.id){
-                    found_user = true;
-                    // Update the user data
-                    users[i].x = data.x;
-                    users[i].y = data.y;
-                    users[i].planet_x = data.planet_x;
-                    users[i].planet_y = data.planet_y;
-                    users[i].angle = data.angle;
-                    users[i].longitude = data.longitude;
-                    break;
-                }
-
-            }
-            for (let i = 0; i < users.length; i++) {
-                if (users[i].id == socket.id) {
-                    //console.log('found player')
-                    var xoffset = player.x - users[i].x;
-                    var yoffset = player.y - users[i].y;
-
-                    player.x = users[i].x;
-                    player.y = users[i].y;
-                    player.hue = users[i].hue;
-                    player.xoffset = isNaN(xoffset) ? 0 : xoffset;
-                    player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+            console.log(data)
+            let planet;
+            for (let j = 0; j < planets.length; j++){
+                if (planets[j].id == data.id){
+                    planet = planets[j];
                 }
             }
-            if (!found_user){
-                users.push(data)
+            for (let i = 0; i < data.update.length; i++){
+                let index = data.update[i][0];
+                planet.altitudes[index] = data.update[i][1];
             }
-
-        } else if (data.sprite == 'SpriteType.BULLET_SPRITE') {
+        }
+        // else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
+        //     let found_user;
+        //     for (let i = 0; i < users.length; i++){
+        //         //console.log(i)
+        //         if (users[i].id == data.id){
+        //             found_user = true;
+        //             // Update the user data
+        //             users[i].x = data.x;
+        //             users[i].y = data.y;
+        //             users[i].planet_x = data.planet_x;
+        //             users[i].planet_y = data.planet_y;
+        //             users[i].angle = data.angle;
+        //             users[i].longitude = data.longitude;
+        //             break;
+        //         }
+        //
+        //     }
+        //     for (let i = 0; i < users.length; i++) {
+        //         if (users[i].id == socket.id) {
+        //             //console.log('found player')
+        //             var xoffset = player.x - users[i].x;
+        //             var yoffset = player.y - users[i].y;
+        //
+        //             player.x = users[i].x;
+        //             player.y = users[i].y;
+        //             player.hue = users[i].hue;
+        //             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
+        //             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+        //         }
+        //     }
+        //     if (!found_user){
+        //         users.push(data)
+        //     }
+        //
+        // }
+        else if (data.sprite == 'SpriteType.BULLET_SPRITE') {
             //console.log('got bullet')
             bullets.push(data)
         } else {
@@ -319,6 +331,22 @@ function setupSocket(socket) {
 
     socket.on('update-bullets', function(bulletList){
         bullets = bulletList
+    });
+    socket.on('update-tanks', function(tankList){
+        users = tankList.filter((t)=>{return typeof(t.sprite) != 'undefined'});
+        for (let i = 0; i < users.length; i++) {
+            if (users[i].id == socket.id) {
+                //console.log('found player')
+                var xoffset = player.x - users[i].x;
+                var yoffset = player.y - users[i].y;
+
+                player.x = users[i].x;
+                player.y = users[i].y;
+                player.hue = users[i].hue;
+                player.xoffset = isNaN(xoffset) ? 0 : xoffset;
+                player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+            }
+        }
     });
     // Handle movement.
     socket.on('-serverTellPlayerMove', function (data) {

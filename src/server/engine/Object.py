@@ -47,7 +47,8 @@ class Object:
         self.is_bullet: bool = False
 
         # queued changes to send via the socket
-        self.changes_queue = Queue()
+        # self.changes_queue = Queue()
+        self.changes_queue = []
 
     @property
     def collision_sphere(self) -> Sphere:
@@ -122,10 +123,16 @@ class Object:
         :param server: AsyncServer to send changes from via socket-io protocol
         :return: None
         """
-        while not self.changes_queue.empty():
-            item = self.changes_queue.get()
+        # while not self.changes_queue.empty():
+        #     item = self.changes_queue.get()
+        #     await server.emit('update',
+        #                       {'id': self.id,
+        #                        'sprite': str(self.sprite_type),
+        #                        'update': item}, *args, **kwargs)
+        #     self.changes_queue.task_done()
+        if len(self.changes_queue):
             await server.emit('update',
                               {'id': self.id,
                                'sprite': str(self.sprite_type),
-                               'update': item}, *args, **kwargs)
-            self.changes_queue.task_done()
+                               'update': self.changes_queue}, *args, **kwargs)
+        self.changes_queue = []

@@ -11,7 +11,7 @@ from .Config import ConfigData, gravity_constant, turns_enabled
 from .PlanetObject import PlanetObject
 from .SpriteType import SpriteType
 from .TankObject import TankObject
-from .vector import Vector
+from .vector import Vector, Sphere
 
 
 class ObjectManager:
@@ -114,16 +114,21 @@ class ObjectManager:
     async def send_objects_initial(self, sio: AsyncServer, *args, **kwargs):
         for planet in self.planets.values():
             await planet.emit_initial(sio, *args, **kwargs)
-        for user in self.users:
-            await user.emit_initial(self.tanks, sio, *args, **kwargs)
+        # for user in self.users:
+        #     await user.emit_initial(self.tanks, sio, *args, **kwargs)
 
     async def send_updates(self, sio: AsyncServer, *args, **kwargs):
         # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
         for planet in self.planets.values():
             await planet.emit_changes(sio, *args, **kwargs)
 
-        for user in self.users:
-            await user.emit_changes(self.tanks, sio, *args, **kwargs)
+        # It creates rendering issues (graphical stuttering) when we send the bullets one at a time.
+        # Avoid this by sending all in one msg.
+        await sio.emit('update-tanks',
+                       [users.get_changes(self.tanks) for users in self.users],
+                       *args, **kwargs)
+        # for user in self.users:
+        #     await user.emit_changes(self.tanks, sio, *args, **kwargs)
 
         # It creates rendering issues (graphical stuttering) when we send the bullets one at a time.
         # Avoid this by sending all in one msg.
@@ -131,7 +136,7 @@ class ObjectManager:
                        [bullet.get_json() for bullet in self.bullets],
                        *args, **kwargs)
         # for bullet in self.bullets:
-            # await bullet.emit_changes(sio)
+        #   await bullet.emit_changes(sio)
 
         for u in self.users:
             # center the view if x/y is undefined, this will happen for spectators
@@ -271,6 +276,13 @@ class ObjectManager:
                 bullet.kill()
                 tank.take_damage(bullet.damage)
 
+        for bullet, planet in product(self.bullets, list(self.planets.values())):
+            if planet.intersects(bullet.collision_sphere):
+                if bullet.destroys_terrain:
+                    damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
+                    planet.destroy_terrain(damage_sphere)
+                bullet.kill()
+
     async def cull_dead_objects(self, server: AsyncServer):
         await self.send_updates(server)
         dead_bullets = [bullet for bullet in self.bullets if bullet.dead]
@@ -279,5 +291,5 @@ class ObjectManager:
 
         dead_tanks_sids = [sid for sid, tank in self.tanks.items() if tank.dead]
         for sid in dead_tanks_sids:
-            # self.tanks.pop(sid)
-            self.remove_player(sid)
+            self.tanks.pop(sid)
+            await server.emit('RIP', room=sid)

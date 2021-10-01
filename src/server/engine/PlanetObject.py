@@ -1,3 +1,4 @@
+import math
 from enum import Enum, auto
 from math import atan2, pi, asin, ceil
 from random import randint
@@ -80,7 +81,7 @@ class PlanetObject(Object):
 
         # Scale the heights so that mountains are in the right range. Then add sealevel_radius.
         self.altitudes = self.altitudes * tallest_mount_altitude / (
-                    self.maximum_altitude - self.minimum_altitude) + self.sealevel_radius
+                self.maximum_altitude - self.minimum_altitude) + self.sealevel_radius
         self.altitudes = self.altitudes.astype(int)
 
         self.maximum_altitude = np.max(self.altitudes)
@@ -105,19 +106,22 @@ class PlanetObject(Object):
 
         exposed_indices = (altitude_index + np.arange(-delta_altitude_index,
                                                       delta_altitude_index)) % self.number_of_altitudes
+
         for i in exposed_indices:
             angle = 2 * pi * i / self.number_of_altitudes
             direction = UnitVector(angle)
             length = self.altitudes[i]
 
             intersects, first_intersection, second_intersection = object_boundary.intersects_line(origin, direction)
-
-            if length > self.core_radius + 5 and intersects and length >= first_intersection:
-                self.altitudes[i] = max(first_intersection, length - second_intersection)
+            if intersects:
+                f1: float = abs(first_intersection - self.position)  # length to first intersection
+                f2: float = abs(second_intersection - self.position)  # length to second intersection
+                if length >= f1:
+                    self.altitudes[i] = max(f1, length - f2)
             self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
-            self.changes_queue.put(i, int(self.altitudes[i]))
+            self.changes_queue.append([int(i), int(self.altitudes[i])])
 
-    def get_altitude_at_angle(self, angle: float):
+    def get_altitude_at_angle(self, angle: float) -> int:
         """
 
         :param angle:
@@ -130,7 +134,8 @@ class PlanetObject(Object):
         altitude_index = int(angle / degrees_per_altitude_change) % self.number_of_altitudes
         return self.altitudes[altitude_index]
 
-    def get_altitude_index_under_point(self, point: Vector):
+
+    def get_altitude_under_point(self, point: Vector) -> int:
         """
 
         :param point:
@@ -140,9 +145,17 @@ class PlanetObject(Object):
         angle = atan2(direction.y, direction.x) * 180 / pi  # Calculate the angle of the vector in degrees
         return self.get_altitude_at_angle(angle)
 
+    def get_altitude_index_under_point(self, point: Vector) -> int:
+        # TODO: fix the fact that this will never give the indices corresponding to pi/2 and 3pi/2 since
+        # their tangent is equal to plus or minus infinity
+        degrees_per_altitude_change = 360 / self.number_of_altitudes
+        direction = point - self.position  # Vector pointing from the center to the outside point.
+        angle = atan2(direction.y, direction.x) * 180 / pi  # Calculate the angle of the vector in degrees
+        return int(int(angle) / degrees_per_altitude_change) % self.number_of_altitudes
+
     def get_surface_vector_at_index(self, altitude_index: int):
         angle = 2 * pi * altitude_index / self.number_of_altitudes
-        return self.position + self.altitudes[altitude_index] * UnitVector(angle)
+        return self.position + self.altitudes[altitude_index % self.number_of_altitudes] * UnitVector(angle)
 
     def get_slope_at_longitude(self, longitude: float):
         """
@@ -180,3 +193,30 @@ class PlanetObject(Object):
                            'altitudes': [int(a) for a in list(self.altitudes)]
                            },
                           *args, **kwargs)
+
+    def intersects(self, object_boundary: Sphere) -> bool:
+        intersects_core, _, _ = self.core_sphere.intersects_circle(object_boundary)
+        if intersects_core:
+            return True
+        if self.maximum_altitude_sphere.intersects_circle(object_boundary):
+            center = object_boundary.center
+            altitude_index = self.get_altitude_index_under_point(center)
+
+            v0 = v1 = Vector(0, 0)
+
+            # Now, we need to check if it intersects the triangles below the point.
+            # A triangle has vertices of the planet center and the surface positions at two adjacent altitudes indices
+            # We check two triangles back and two triangles forward.
+
+            for i in range(-2, 2):
+                current_index = (altitude_index + i) % self.number_of_altitudes
+                v0 = self.get_surface_vector_at_index(current_index)
+                v1 = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
+                # print('checking', self.position, v1, v0, object_boundary.center)
+                # First make sure none of the points are the same
+                # Things crash if the triangle is degenerate (i.e. two points are the same).
+                # Then check if the object intersects the triangle
+                if (self.position != v0 != v1 != self.position
+                        and object_boundary.intersects_triangle(self.position, v1, v0)):
+                    return True
+        return False

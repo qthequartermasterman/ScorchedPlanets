@@ -24,7 +24,8 @@ class BulletObject(Object):
 
         # Reactions stuff
         self.damage: int = 10
-        self.explosion_radius: float = 0
+        self.destroys_terrain: bool = True
+        self.explosion_radius: float = 50
         self.collision_radius: float = 10
         self.explosion_sprite: SpriteType = SpriteType.WATER_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
@@ -63,7 +64,6 @@ class BulletObject(Object):
         return {'id': self.id,
                 'sprite': str(self.sprite_type),
                 'roll': self.roll,
-
                 'x': self.position.x,
                 'y': self.position.y}
 

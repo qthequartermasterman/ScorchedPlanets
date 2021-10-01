@@ -30,20 +30,29 @@ class PlayerInfo:
         dictionary['target'] = Vector(dictionary['target']['x'], dictionary['target']['y'])
         return PlayerInfo(**dictionary)
 
-    async def emit_changes(self, tanks, server: AsyncServer, *args, **kwargs):
-        try:
-            changes = {'id': self.id,
-                       'name': self.name,
-                       **(tanks[self.id].get_changes())}
-            await server.emit('update', changes, *args, **kwargs)
-        except KeyError:  # self.id not available in tanks, so the player must be dead.
-            await server.emit('RIP', room=self.id)
+    # async def emit_changes(self, tanks, server: AsyncServer, *args, **kwargs):
+    #     try:
+    #         changes = {'id': self.id,
+    #                    'name': self.name,
+    #                    **(tanks[self.id].get_changes())}
+    #         await server.emit('update', changes, *args, **kwargs)
+    #     except KeyError:  # self.id not available in tanks, so the player must be dead.
+    #         await server.emit('RIP', room=self.id)
+    #
+    # async def emit_initial(self, tanks, server: AsyncServer, *args, **kwargs):
+    #     try:
+    #         changes = {'id': self.id,
+    #                    'name': self.name,
+    #                    **(tanks[self.id].get_changes())}
+    #         await server.emit('update', changes, *args, **kwargs)
+    #     except KeyError:  # self.id not available in tanks, so the player must be dead.
+    #         await server.emit('RIP', room=self.id)
 
-    async def emit_initial(self, tanks, server: AsyncServer, *args, **kwargs):
+    def get_changes(self, tanks):
         try:
-            changes = {'id': self.id,
-                       'name': self.name,
-                       **(tanks[self.id].get_changes())}
-            await server.emit('update', changes, *args, **kwargs)
-        except KeyError:  # self.id not available in tanks, so the player must be dead.
-            await server.emit('RIP', room=self.id)
+            return {'id': self.id,
+                    'name': self.name,
+                    **(tanks[self.id].get_changes())}
+        except KeyError:
+            return {'id': self.id,
+                    'name': self.name,}
