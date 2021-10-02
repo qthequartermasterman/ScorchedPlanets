@@ -140,8 +140,6 @@ class ObjectManager:
 
         # Send explosions
         await sio.emit('update-explosions', self.explosions)
-        if len(self.explosions):
-            print(self.explosions)
         self.explosions = []
 
         for u in self.users:
@@ -185,9 +183,12 @@ class ObjectManager:
             del self.tanks[sid]
         except KeyError:
             pass
-        for i in range(len(self.users)):
-            if self.users[i].id == sid:
-                self.users.pop(i)
+        try:
+            for i in range(len(self.users)):
+                if self.users[i].id == sid:
+                    self.users.pop(i)
+        except KeyError:
+            pass
 
     def angle_left(self, sid):
         self.tanks[sid].rotation_speed = -1
@@ -284,19 +285,22 @@ class ObjectManager:
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
             if planet.intersects(bullet.collision_sphere):
-                if bullet.destroys_terrain:
-                    damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
-                    planet.destroy_terrain(damage_sphere)
-                self._explode_bullet(bullet)
+                self._explode_bullet(bullet, planet)
 
     # TODO Rename this here and in `collision_phase`
-    def _explode_bullet(self, bullet):
+    def _explode_bullet(self, bullet, planet: PlanetObject=None, tank:TankObject=None):
         self.explosions.append({'x': bullet.position.x,
                                 'y': bullet.position.y,
                                 'sprite': str(bullet.explosion_sprite),
                                 'radius': bullet.explosion_radius,
                                 'sound': str(bullet.explosion_sound)})
-        self.damage_players_in_sphere(bullet.collision_sphere, bullet.damage)
+        self.damage_players_in_sphere(Sphere(bullet.position, bullet.explosion_radius), bullet.damage)
+        if bullet.destroys_terrain:
+            damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
+            if tank and not planet:
+                planet = tank.home_planet
+            if planet:
+                planet.destroy_terrain(damage_sphere)
         bullet.kill()
 
     async def cull_dead_objects(self, server: AsyncServer):
@@ -336,7 +340,8 @@ class ObjectManager:
         :return:
         """
         for _, tank in self.tanks.items():
-            if sphere.intersects_circle(tank.collision_sphere):
+            intersect, _, _ = sphere.intersects_circle(tank.collision_sphere)
+            if intersect:
                 tank.take_damage(damage)
 
     def load_level_file(self, path: str):

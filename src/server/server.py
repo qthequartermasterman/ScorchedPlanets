@@ -110,6 +110,16 @@ async def pingcheck(sid):
     print(f'{sid} is pingchecking.')
     await sio.emit('pongcheck', room=sid)
 
+@sio.event
+async def playerChat(sid, data):
+    # TODO: Regex replace
+    _sender = data['sender'].replace('/(<([^>]+)>)/ig', '')
+    _message = data['message'].replace('/(<([^>]+)>)/ig', '')
+    now: datetime = datetime.now()
+    if ConfigData.logChat == 1:
+        print(f'[CHAT] [{now.hour:02d}:{now.minute:02d}] {_sender}: {_message}')
+    await sio.emit('serverSendPlayerChat', {'sender': _sender, 'message': _message[:35]}, skip_sid=sid)
+
 
 @sio.event
 async def kick(sid, data):

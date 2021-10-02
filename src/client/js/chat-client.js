@@ -72,7 +72,7 @@ class ChatClient {
 
         // Colours the chat input correctly.
         newline.className = (me) ? 'me' : 'friend';
-        newline.innerHTML = '<b>' + ((name.length < 1) ? 'An unnamed cell' : name) + '</b>: ' + message;
+        newline.innerHTML = '<b>' + ((name.length < 1) ? 'An unnamed tank' : name) + '</b>: ' + message;
 
         this.appendMessage(newline);
     }
