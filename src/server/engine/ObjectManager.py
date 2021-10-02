@@ -65,7 +65,6 @@ class ObjectManager:
         self.bullets.append(bullet)
         return bullet
 
-
     def create_phantom_bullet(self, bullet, position, velocity, owner) -> float:
         """
 
@@ -102,11 +101,11 @@ class ObjectManager:
     def calculate_gravity(self, position) -> Vector:
         acceleration: Vector = Vector(0, 0)
         for _, planet in self.planets.items():
-            difference: Vector = planet.position-position
+            difference: Vector = planet.position - position
             mag = abs(difference)
-            unit = difference/mag
+            unit = difference / mag
 
-            acceleration += gravity_constant * planet.mass / mag**2 * unit
+            acceleration += gravity_constant * planet.mass / mag ** 2 * unit
         return acceleration
 
     def at_world_edge(self, oldpos) -> bool:
@@ -276,16 +275,11 @@ class ObjectManager:
     def collision_phase(self):
         for bullet, tank in product(self.bullets, list(self.tanks.values())):
             intersects, _, _ = bullet.collision_sphere.intersects_circle(tank.collision_sphere)
+            # If the bullet intersects a tank
+            # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
+            # shot them.
             if intersects and tank != bullet.owner:
-                # If the bullet intersects a tank
-                # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
-                # shot them.
-                self.explosions.append({'x': bullet.position.x,
-                                        'y': bullet.position.y,
-                                        'sprite': str(bullet.explosion_sprite),
-                                        'radius': bullet.explosion_radius,
-                                        'sound': str(bullet.explosion_sound)})
-                bullet.kill()
+                self._explode_bullet(bullet)
                 tank.take_damage(bullet.damage)
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
@@ -293,13 +287,17 @@ class ObjectManager:
                 if bullet.destroys_terrain:
                     damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
                     planet.destroy_terrain(damage_sphere)
-                self.explosions.append({'x': bullet.position.x,
-                                        'y': bullet.position.y,
-                                        'sprite': str(bullet.explosion_sprite),
-                                        'radius': bullet.explosion_radius,
-                                        'sound': str(bullet.explosion_sound)})
-                bullet.kill()
+                self._explode_bullet(bullet)
 
+    # TODO Rename this here and in `collision_phase`
+    def _explode_bullet(self, bullet):
+        self.explosions.append({'x': bullet.position.x,
+                                'y': bullet.position.y,
+                                'sprite': str(bullet.explosion_sprite),
+                                'radius': bullet.explosion_radius,
+                                'sound': str(bullet.explosion_sound)})
+        self.damage_players_in_sphere(bullet.collision_sphere, bullet.damage)
+        bullet.kill()
 
     async def cull_dead_objects(self, server: AsyncServer):
         await self.send_updates(server)
@@ -329,3 +327,14 @@ class ObjectManager:
         except KeyError:
             # Player is dead
             pass
+
+    def damage_players_in_sphere(self, sphere: Sphere, damage: int) -> None:
+        """
+        Iterate over all the players and damage them if they are inside the explosion sphere
+        :param sphere: BoundingSphere representing the explosion
+        :param damage: how much to damage players.
+        :return:
+        """
+        for _, tank in self.tanks:
+            if sphere.intersects_circle(tank.collision_sphere):
+                tank.take_damage(damage)
