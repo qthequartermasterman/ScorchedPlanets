@@ -24,10 +24,12 @@ sio.attach(app)
 object_manager = ObjectManager()
 users = object_manager.users
 sockets = object_manager.sockets
-for _ in range(1):
-    object_manager.create_planet(
-        position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
-        radius=randint(500, 1000))
+# for _ in range(1):
+#     object_manager.create_planet(
+#         position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
+#         radius=randint(500, 1000))
+
+object_manager.load_level_file('./levels/Stage 1/Triplets.txt')
 
 
 @sio.event

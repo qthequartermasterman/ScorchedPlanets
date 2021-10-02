@@ -335,6 +335,31 @@ class ObjectManager:
         :param damage: how much to damage players.
         :return:
         """
-        for _, tank in self.tanks:
+        for _, tank in self.tanks.items():
             if sphere.intersects_circle(tank.collision_sphere):
                 tank.take_damage(damage)
+
+    def load_level_file(self, path: str):
+        """
+        Load a level file at the given path
+        :param path: url to the correct file
+        :return:
+        """
+
+        with open(path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                pieces = line.split()
+                if pieces[0] == 'NAME':
+                    pass
+                elif pieces[0] == 'WORLD':
+                    pass
+                elif pieces[0] == 'PLANET':
+                    self.create_planet(Vector(int(pieces[1]), int(pieces[2])),
+                                       mass=int(pieces[3]),
+                                       radius=int(pieces[4]))
+                elif pieces[0] == 'TANK':
+                    pass
+
+
+
