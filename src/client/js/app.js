@@ -121,6 +121,7 @@ var foods = [];
 var viruses = [];
 var fireFood = [];
 var users = [];
+let explosions = [];
 let planets = []
 let bullets = [];
 var leaderboard = [];
@@ -166,7 +167,8 @@ sprites = {
     GREYBODY1_SPRITE: load_image('/img/tanks_tankGrey_body1.png'),
     TURRET1_SPRITE: load_image('/img/tanks_turret1.png'),
     TREADS1_SPRITE: load_image('/img/tanks_tankTracks1.png'),
-    BULLET_SPRITE: load_image('/img/BulletSprites/tank_bullet1.png')
+    BULLET_SPRITE: load_image('/img/BulletSprites/tank_bullet1.png'),
+    EXPLOSION1_SPRITE: load_image('/img/tank_explosion1.png')
 }
 
 
@@ -348,6 +350,10 @@ function setupSocket(socket) {
             }
         }
     });
+
+    socket.on('update-explosions', function(explosionsList){
+        let explosions = explosionsList
+    })
     // Handle movement.
     socket.on('-serverTellPlayerMove', function (data) {
         userData = data[0];
@@ -442,6 +448,17 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
     context.translate(- image.width/2, - image.height/2)
     context.drawImage( image, -axisX, -axisY  );
     context.restore()
+}
+
+function drawExplosion(explosion){
+    let centerX = explosion.x - player.x + global.screenWidth / 2 ;
+    let centerY = explosion.y - player.y + global.screenHeight / 2 ;
+
+    let spriteName = explosion.sprite.substring(11);
+
+    drawCircle(centerX, centerY, explosion.radius, 16)
+
+    rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0)
 }
 
 
@@ -766,6 +783,7 @@ function gameLoop() {
             planets.forEach(drawPlanet)
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
+            explosions.forEach(drawExplosion);
             //bullets = []; //Hacky way to empty out the bullets to render
 
             if (global.borderDraw) {

@@ -6,8 +6,9 @@ import socketio
 from random import random, randint, choice
 from aiohttp import web
 
-from engine.PlanetObject import PlanetObject
+
 from engine.vector import Vector
+from engine.PlanetObject import PlanetObject
 from engine.util import validNick
 from engine.Config import ConfigData
 from engine.ObjectManager import ObjectManager

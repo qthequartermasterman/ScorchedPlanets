@@ -16,6 +16,7 @@ from .vector import Vector, Sphere
 
 class ObjectManager:
     def __init__(self):
+        self.explosions = []
         self.users = []
         self.sockets = {}
         self.planets: Dict[str, PlanetObject] = {}
@@ -137,6 +138,12 @@ class ObjectManager:
                        *args, **kwargs)
         # for bullet in self.bullets:
         #   await bullet.emit_changes(sio)
+
+        # Send explosions
+        await sio.emit('update-explosions', self.explosions)
+        if len(self.explosions):
+            print(self.explosions)
+        self.explosions = []
 
         for u in self.users:
             # center the view if x/y is undefined, this will happen for spectators
@@ -273,6 +280,11 @@ class ObjectManager:
                 # If the bullet intersects a tank
                 # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
                 # shot them.
+                self.explosions.append({'x': bullet.position.x,
+                                        'y': bullet.position.y,
+                                        'sprite': str(bullet.explosion_sprite),
+                                        'radius': bullet.explosion_radius,
+                                        'sound': str(bullet.explosion_sound)})
                 bullet.kill()
                 tank.take_damage(bullet.damage)
 
@@ -281,7 +293,13 @@ class ObjectManager:
                 if bullet.destroys_terrain:
                     damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
                     planet.destroy_terrain(damage_sphere)
+                self.explosions.append({'x': bullet.position.x,
+                                        'y': bullet.position.y,
+                                        'sprite': str(bullet.explosion_sprite),
+                                        'radius': bullet.explosion_radius,
+                                        'sound': str(bullet.explosion_sound)})
                 bullet.kill()
+
 
     async def cull_dead_objects(self, server: AsyncServer):
         await self.send_updates(server)

@@ -2,13 +2,16 @@ from dataclasses import dataclass
 from itertools import combinations
 from math import cos, sin, sqrt
 
-import numpy as np
-from numba.experimental import jitclass
-from numba import float32, njit
+
+# from numba.experimental import jitclass
+# from numba import float32, njit
 
 
-#@jitclass([('x', float32), ('y', float32)])
+# @jitclass(spec=[('x', float32), ('y', float32)])
 class Vector:
+    x: float
+    y: float
+
     def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
@@ -36,18 +39,18 @@ class Vector:
         return Vector(self.x - other.x, self.y - other.y)
 
     def __truediv__(self, other):
-        return 1/other * self
+        return 1 / other * self
 
     def __neg__(self):
         return Vector(-self.x, -self.y)
 
 
-#@njit
+# @njit
 def UnitVector(angle: float):
     return Vector(cos(angle), sin(angle))
 
 
-#@jitclass
+# @jitclass
 @dataclass
 class Sphere:
     center: Vector

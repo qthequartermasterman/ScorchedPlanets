@@ -27,7 +27,7 @@ class BulletObject(Object):
         self.destroys_terrain: bool = True
         self.explosion_radius: float = 50
         self.collision_radius: float = 10
-        self.explosion_sprite: SpriteType = SpriteType.WATER_SPRITE
+        self.explosion_sprite: SpriteType = SpriteType.EXPLOSION1_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
         self.bounces: float = 0  # Bounces for bouncing bullet (BULLET7)
         self.times_shot: int = 0  # Times shot manually by player after shooting initial bullet (BULLET8)
