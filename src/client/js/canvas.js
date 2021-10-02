@@ -165,6 +165,9 @@ class Canvas {
         else if (key === global.KEY_CHAT) {
             document.getElementById('chatInput').focus();
         }
+        if (event.key === global.KEY_NEXT_BULLET){
+            this.parent.socket.emit('next_bullet');
+        }
     }
 }
 

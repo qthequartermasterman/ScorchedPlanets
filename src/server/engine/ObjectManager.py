@@ -187,7 +187,7 @@ class ObjectManager:
             for i in range(len(self.users)):
                 if self.users[i].id == sid:
                     self.users.pop(i)
-        except KeyError:
+        except IndexError:
             pass
 
     def angle_left(self, sid):
@@ -365,6 +365,9 @@ class ObjectManager:
                                        radius=int(pieces[4]))
                 elif pieces[0] == 'TANK':
                     pass
+
+    def next_bullet(self, sid):
+        self.tanks[sid].selected_bullet = (self.tanks[sid].selected_bullet + 1) % len(self.tanks[sid].bullet_counts)
 
 
 

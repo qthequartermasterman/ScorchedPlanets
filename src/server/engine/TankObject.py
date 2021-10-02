@@ -237,7 +237,11 @@ class TankObject(Object):
                 'tread_x': 1,
                 'tread_y': 1,
                 'angle': self.angle,
-                'longitude': self.longitude, }
+                'longitude': self.longitude,
+                'health': self.health_points,
+                'selected_bullet': self.selected_bullet,
+                'bullet_counts': self.bullet_counts,
+                'bullet_sprites': [str(bullet_type) for bullet_type in self.bullet_types]}
 
     def think(self):
         pass

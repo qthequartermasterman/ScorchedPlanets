@@ -186,6 +186,9 @@ async def power_up(sid):
 @sio.event
 async def power_down(sid):
     object_manager.power_down(sid)
+@sio.event
+async def next_bullet(sid):
+    object_manager.next_bullet(sid)
 
 async def send_objects_initial(*args, **kwargs):
     return await object_manager.send_objects_initial(sio, *args, **kwargs)

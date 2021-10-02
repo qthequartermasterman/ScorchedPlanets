@@ -13,6 +13,7 @@ global = {
     KEY_A: 65,
     KEY_S: 83,
     KEY_D: 68,
+    KEY_NEXT_BULLET: 'q',
     borderDraw: false,
     spin: -Math.PI,
     enemySpin: -Math.PI,

@@ -167,8 +167,22 @@ sprites = {
     GREYBODY1_SPRITE: load_image('/img/tanks_tankGrey_body1.png'),
     TURRET1_SPRITE: load_image('/img/tanks_turret1.png'),
     TREADS1_SPRITE: load_image('/img/tanks_tankTracks1.png'),
-    BULLET_SPRITE: load_image('/img/BulletSprites/tank_bullet1.png'),
-    EXPLOSION1_SPRITE: load_image('/img/tank_explosion1.png')
+    EXPLOSION1_SPRITE: load_image('/img/tank_explosion1.png'),
+    HPBAR_SPRITE: load_image('/img/hp_bar.png'),
+    HPSEGMENT_SPRITE: load_image('/img/hp_segment.png'),
+    BULLET_SPRITE: load_image('/img/BulletSprites/bullet.png'),
+    BULLET2_SPRITE: load_image('/img/BulletSprites/bullet2.png'),
+    BULLET3_SPRITE: load_image('/img/BulletSprites/tank_bullet1.png'),
+    BULLET4_SPRITE: load_image('/img/BulletSprites/tank_bullet2.png'),
+    BULLET5_SPRITE: load_image('/img/BulletSprites/tank_bullet3.png'),
+    BULLET6_SPRITE: load_image('/img/BulletSprites/tank_bullet4.png'),
+    BULLET7_SPRITE: load_image('/img/BulletSprites/tank_bullet5.png'),
+    BULLET8_SPRITE: load_image('/img/BulletSprites/tank_bullet6.png'),
+    BULLET9_SPRITE: load_image('/img/BulletSprites/bullet7.png'),
+    BULLET10_SPRITE: load_image('/img/BulletSprites/bullet8.png'),
+    BULLET11_SPRITE: load_image('/img/BulletSprites/bullet9.png'),
+    BULLET12_SPRITE: load_image('/img/BulletSprites/bullet10.png'),
+    MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png')
 }
 
 
@@ -288,41 +302,7 @@ function setupSocket(socket) {
                 planet.altitudes[index] = data.update[i][1];
             }
         }
-        // else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
-        //     let found_user;
-        //     for (let i = 0; i < users.length; i++){
-        //         //console.log(i)
-        //         if (users[i].id == data.id){
-        //             found_user = true;
-        //             // Update the user data
-        //             users[i].x = data.x;
-        //             users[i].y = data.y;
-        //             users[i].planet_x = data.planet_x;
-        //             users[i].planet_y = data.planet_y;
-        //             users[i].angle = data.angle;
-        //             users[i].longitude = data.longitude;
-        //             break;
-        //         }
-        //
-        //     }
-        //     for (let i = 0; i < users.length; i++) {
-        //         if (users[i].id == socket.id) {
-        //             //console.log('found player')
-        //             var xoffset = player.x - users[i].x;
-        //             var yoffset = player.y - users[i].y;
-        //
-        //             player.x = users[i].x;
-        //             player.y = users[i].y;
-        //             player.hue = users[i].hue;
-        //             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
-        //             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
-        //         }
-        //     }
-        //     if (!found_user){
-        //         users.push(data)
-        //     }
-        //
-        // }
+
         else if (data.sprite == 'SpriteType.BULLET_SPRITE') {
             //console.log('got bullet')
             bullets.push(data)
@@ -347,6 +327,10 @@ function setupSocket(socket) {
                 player.hue = users[i].hue;
                 player.xoffset = isNaN(xoffset) ? 0 : xoffset;
                 player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+                player.health = users[i].health;
+                player.selected_bullet = users[i].selected_bullet;
+                player.bullet_counts = users[i].bullet_counts;
+                player.bullet_sprites = users[i].bullet_sprites;
             }
         }
     });
@@ -378,6 +362,7 @@ function setupSocket(socket) {
             //player.cells = playerData.cells;
             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+
         }
         //users = userData;
         foods = foodsList;
@@ -441,12 +426,12 @@ function drawFood(food) {
                food.radius, global.foodSides);
 }
 
-function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX=0, axisY=0){
+function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX=0, axisY=0, imageWidth=1, imageHeight=1){
     context.save()
     context.translate( positionX , positionY);
     context.rotate( angleInRadians );
     context.translate(- image.width/2, - image.height/2)
-    context.drawImage( image, -axisX, -axisY  );
+    context.drawImage( image, -axisX, -axisY , imageWidth * image.width, imageHeight*image.height);
     context.restore()
 }
 
@@ -461,6 +446,58 @@ function drawExplosion(explosion){
     rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0)
 }
 
+function drawHPBar(health){
+    // Draw bar
+    graph.drawImage(sprites.HPBAR_SPRITE, 0, 0);
+
+    //Draw segments
+    let current_x = 8
+    for (let i=0; i < health/4; i++){
+        graph.drawImage(sprites.HPSEGMENT_SPRITE,current_x, 40);
+        current_x += sprites.HPSEGMENT_SPRITE.width;
+    }
+
+    // Text
+    graph.fillStyle = "#ff8c00";
+    graph.textAlign = "center";
+    graph.font = "24px Arial";
+    graph.fillText(health + "%", 250,90);
+
+    //TODO: Fuel bar
+}
+
+function drawInventory(){
+    let selectedIndex = player.selected_bullet;
+
+    graph.fillStyle = "#ffffffff";
+    graph.textAlign = "left";
+    graph.font = "24px Arial";
+    //go through each available bullet for player
+    for (let i=0; i < 5; i++){//only display 5 bullets at a time
+        let bulletIndex = i + selectedIndex;
+        // Make sure our index is within the range of available bullets
+        if (bulletIndex >= player.bullet_counts.length)
+            bulletIndex -= player.bullet_counts.length;
+
+        //set sprite and draw on side of screen
+        let sprite_name = player.bullet_sprites[bulletIndex].substring(11);
+        let sprite = sprites[sprite_name];
+
+
+
+        let angle = i===0 ? Math.PI/4 : 0
+        rotateAndDrawImage(graph, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
+
+        //Draw Bullet counts
+        if (bulletIndex === 0 || bulletIndex === 1)
+            graph.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
+        else
+            graph.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
+
+        if (i===0)
+            graph.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+    }
+}
 
 function drawTank(tank){
     let centerX = tank.x - player.x + global.screenWidth / 2 ;
@@ -784,7 +821,9 @@ function gameLoop() {
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
             explosions.forEach(drawExplosion);
-            //bullets = []; //Hacky way to empty out the bullets to render
+            drawHPBar(player.health)
+            drawInventory()
+
 
             if (global.borderDraw) {
                 drawborder();
