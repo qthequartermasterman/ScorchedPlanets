@@ -121,6 +121,47 @@ class PlanetObject(Object):
             self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
             self.changes_queue.append([int(i), int(self.altitudes[i])])
 
+    def generate_terrain(self, object_boundary: Sphere):
+        """
+        Generates terrain within the explosion radius, which immediately falls down to the planet's surface.
+        :param object_boundary:
+        :return:BoundingSphere that represents the explosion radius.
+        """
+        origin: Vector = self.position  # We will center our coordinate system at the center of the planet
+        center: Vector = object_boundary.center  # Center of the offending object
+        difference: Vector = center - origin
+        r: float = object_boundary.radius  # Radius of the offending object
+        h: float = abs(difference)  # Distance between the planet core and the offending object
+
+        angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
+        # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
+        # object center to its radius. This can be found with a little bit of trigonometry.
+        delta_angle: float = abs(asin(r / h))
+        # The number of altitude indices that that angle translates to
+        delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
+        direction: Vector  # Direction from the planet center to surface at an angle
+        # Altitude index under the center of the offending object
+        altitude_index: int = self.get_altitude_index_under_point(center)
+
+        exposed_indices = (altitude_index + np.arange(-delta_altitude_index,
+                                                      delta_altitude_index)) % self.number_of_altitudes
+
+        for i in exposed_indices:
+            angle = 2 * pi * i / self.number_of_altitudes
+            direction = UnitVector(angle)
+            length = self.altitudes[i]
+
+            intersects, first_intersection, second_intersection = object_boundary.intersects_line(origin, direction)
+            if intersects:
+                f1: float = abs(first_intersection - self.position)  # length to first intersection
+                f2: float = abs(second_intersection - self.position)  # length to second intersection
+                # Dump either the rest of the circle (if bottom intersection is in planet)
+                # or the entirety of the way across the circle (if the entire ray is above the planet)
+                self.altitudes[i] += f2-length if length >= f1 else f2 - f1
+            self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
+            self.changes_queue.append([int(i), int(self.altitudes[i])])
+
+
     def get_altitude_at_angle(self, angle: float) -> int:
         """
 
