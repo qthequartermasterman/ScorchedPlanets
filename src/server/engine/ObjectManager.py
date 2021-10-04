@@ -1,5 +1,5 @@
 from datetime import datetime
-from math import pi, cos, sin, exp
+from math import pi, cos, sin, exp, atan2
 from random import random, randint, choice
 from typing import List, Dict
 from itertools import product
@@ -13,7 +13,7 @@ from .PlanetObject import PlanetObject
 from .PlayerInfo import PlayerInfo
 from .SpriteType import SpriteType
 from .TankObject import TankObject, TankState
-from .vector import Vector, Sphere
+from .vector import Vector, Sphere, UnitVector
 
 
 class ObjectManager:
@@ -99,7 +99,7 @@ class ObjectManager:
                 # TODO: Implement Wormholes
         final_pos = phantom_bullet.position
         # TODO: Deincentivize suicide shots by figuring out how to maximuze how far away it is from the player
-        self_distance = abs(owner.position-final_pos)
+        self_distance = abs(owner.position - final_pos)
         if self_distance > 50:
             self_distance = 1
         return self.get_nearest_tank_location(final_pos, owner)
@@ -324,8 +324,7 @@ class ObjectManager:
             if planet.intersects(bullet.collision_sphere):
                 self._explode_bullet(bullet, planet)
 
-    # TODO Rename this here and in `collision_phase`
-    def _explode_bullet(self, bullet, planet: PlanetObject = None, tank: TankObject = None):
+    def _explode_bullet(self, bullet: BulletObject, planet: PlanetObject = None, tank: TankObject = None):
         self.explosions.append({'x': bullet.position.x,
                                 'y': bullet.position.y,
                                 'sprite': str(bullet.explosion_sprite),
@@ -338,7 +337,51 @@ class ObjectManager:
                 planet = tank.home_planet
             if planet:
                 planet.destroy_terrain(damage_sphere)
+        if bullet.generates_terrain:
+            damage_sphere = Sphere(bullet.position, bullet.explosion_radius)
+            if tank and not planet:
+                planet = tank.home_planet
+            if planet:
+                planet.generate_terrain(damage_sphere)
+        if bullet.bounce_limit > 0 and bullet.bounces < bullet.bounce_limit:
+            self.bounce_bullet(planet, bullet)
+        if bullet.teleporter:
+            # Teleport the owner to where this collision is
+            bullet.owner.teleport(bullet.position, planet)
+        if bullet.creates_wormholes:
+            # Create 2 wormholes
+            # TODO: Implement wormholes
+            delta = bullet.position - planet.position
+            angle = atan2(delta.x, -delta.y) * 180/pi + 90
+
+            dir1vec: Vector = UnitVector(angle * pi/180)
+            dir2vec: Vector = Vector(x=cos(angle + 180*pi/180),
+                                     y=sin(-angle*pi/180))
+            # Generate wormholes 350 units above sealevel
+            worm1pos: Vector = planet.position + dir1vec * (planet.sealevel_radius + 350)
+            worm2pos: Vector = planet.position + dir2vec * (planet.sealevel_radius + 350)
+            # w1 = self.create_wormhole(worm1pos, len(self.tanks) * 2)
+            # w2 = self.create_wormhole(worm2pos, len(self.tanks) * 2, w1)
+            # w1.next_wormhole = w2
         bullet.kill()
+
+    def bounce_bullet(self, planet: PlanetObject, bullet: BulletObject):
+        # Bounce along the surface of the planet
+        planet_pos = planet.position
+        bullet_pos = bullet.position
+        bullet_vel = bullet.velocity
+
+        normal: Vector = planet_pos - bullet_pos  # Normal vector to the surface
+        normal = normal / abs(normal)  # Unit normal
+        # Create a new bullet that bounces off. We wil recursively make more bullets until out of bounces
+        # Create the next bullet above the planet surface, so that we don't collide with planet immediately
+        new_bullet = self.create_bullet(bullet.sprite_type,
+                                        Vector(x=bullet_pos.x + (-normal.x * 10),
+                                               y=bullet_pos.y + (-normal.y * 10)),
+                                        trail_color=bullet.hue)
+        new_bullet.owner = bullet.owner
+        new_bullet.velocity = -(2 * (normal * bullet_vel) * normal - bullet_vel)  # Follow the law of reflection
+        new_bullet.bounces = bullet.bounces + 1
 
     async def cull_dead_objects(self, server: AsyncServer):
         await self.send_updates(server)
@@ -447,7 +490,7 @@ class ObjectManager:
         distance: float = 0
         for _, tank in self.tanks.items():
             if tank != origin and not tank.dead:
-                distance = abs(position-tank.position)
+                distance = abs(position - tank.position)
                 # distance /= 1 - exp(-abs(origin.position - tank.position)**2/250)
 
         if current_closest_length == -1 or distance < current_closest_length:

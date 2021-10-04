@@ -25,12 +25,16 @@ class BulletObject(Object):
         # Reactions stuff
         self.damage: int = 10
         self.destroys_terrain: bool = True
+        self.generates_terrain: bool = False
         self.explosion_radius: float = 50
         self.collision_radius: float = 1
         self.explosion_sprite: SpriteType = SpriteType.EXPLOSION1_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
-        self.bounces: float = 0  # Bounces for bouncing bullet (BULLET7)
+        self.bounces: int = 0  # Bounces for bouncing bullet (BULLET7)
         self.times_shot: int = 0  # Times shot manually by player after shooting initial bullet (BULLET8)
+        self.bounce_limit: int = 0 # Max number of bounces
+        self.teleporter: bool = False  # Does this bullet teleport the owner?
+        self.creates_wormholes: bool = False  # Does this bullet generate a wormhole?
 
         # Set the damage, explosion radius, and/or other attributes based on the bullet type
         if sprite_type == SpriteType.BULLET_SPRITE:  # black standard
@@ -39,6 +43,8 @@ class BulletObject(Object):
         elif sprite_type == SpriteType.BULLET2_SPRITE:  # red - dirt
             self.damage = 10
             self.explosion_radius = 50
+            self.generates_terrain = True
+            self.destroys_terrain = False
         elif sprite_type == SpriteType.BULLET4_SPRITE:  # grey egg shaped - splits in to 3
             self.damage = 7.5
             self.explosion_radius = 50
@@ -56,10 +62,12 @@ class BulletObject(Object):
             self.damage = 7.5
             self.explosion_radius = 50
             self.collision_radius = .75
+            self.bounce_limit = 2
         elif sprite_type == SpriteType.BULLET3_SPRITE:  # grey rounded square - teleportation bullet
             self.damage = 0
             self.explosion_radius = 0
             self.collision_radius = .75
+            self.teleporter = True
         elif sprite_type == SpriteType.BULLET8_SPRITE:  # yellow egg - shoots bullets when right click
             self.damage = 7.5
             self.explosion_radius = 50
@@ -82,6 +90,7 @@ class BulletObject(Object):
             self.damage = 2.5
             self.explosion_radius = 5
             self.collision_radius = .1
+            self.creates_wormholes = True
         elif sprite_type == SpriteType.MINE_SPRITE:
             self.damage = 12.5
             self.explosion_radius = 120
