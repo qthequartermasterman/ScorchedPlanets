@@ -134,7 +134,6 @@ class PlanetObject(Object):
         altitude_index = int(angle / degrees_per_altitude_change) % self.number_of_altitudes
         return self.altitudes[altitude_index]
 
-
     def get_altitude_under_point(self, point: Vector) -> int:
         """
 
@@ -202,16 +201,14 @@ class PlanetObject(Object):
             center = object_boundary.center
             altitude_index = self.get_altitude_index_under_point(center)
 
-            v0 = v1 = Vector(0, 0)
-
             # Now, we need to check if it intersects the triangles below the point.
             # A triangle has vertices of the planet center and the surface positions at two adjacent altitudes indices
             # We check two triangles back and two triangles forward.
 
             for i in range(-2, 2):
                 current_index = (altitude_index + i) % self.number_of_altitudes
-                v0 = self.get_surface_vector_at_index(current_index)
-                v1 = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
+                v0: Vector = self.get_surface_vector_at_index(current_index)
+                v1: Vector = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
                 # print('checking', self.position, v1, v0, object_boundary.center)
                 # First make sure none of the points are the same
                 # Things crash if the triangle is degenerate (i.e. two points are the same).

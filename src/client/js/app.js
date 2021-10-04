@@ -374,6 +374,7 @@ function setupSocket(socket) {
     socket.on('RIP', function () {
         global.gameStart = false;
         global.died = true;
+        planets = []
         window.setTimeout(function() {
             document.getElementById('gameAreaWrapper').style.opacity = 0;
             document.getElementById('startMenuWrapper').style.maxHeight = '1000px';

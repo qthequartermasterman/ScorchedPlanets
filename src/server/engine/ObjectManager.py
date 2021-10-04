@@ -1,5 +1,6 @@
 from datetime import datetime
-from random import random
+from math import pi, cos, sin, exp
+from random import random, randint, choice
 from typing import List, Dict
 from itertools import product
 
@@ -9,8 +10,9 @@ from . import Common
 from .BulletObject import BulletObject
 from .Config import ConfigData, gravity_constant, turns_enabled
 from .PlanetObject import PlanetObject
+from .PlayerInfo import PlayerInfo
 from .SpriteType import SpriteType
-from .TankObject import TankObject
+from .TankObject import TankObject, TankState
 from .vector import Vector, Sphere
 
 
@@ -40,7 +42,8 @@ class ObjectManager:
         self.planets[planet.id] = planet
         return planet
 
-    def create_tank(self, longitude: float, home_planet: PlanetObject, sid: str, color: str = '') -> TankObject:
+    def create_tank(self, longitude: float, home_planet: PlanetObject, sid: str, color: str = '',
+                    is_player: bool = False) -> TankObject:
         """
         Create a new Tank
         :param longitude: float longitude of the tank (angle relative to the planet)
@@ -50,6 +53,10 @@ class ObjectManager:
         :return:
         """
         tank = TankObject(longitude=longitude, planet=home_planet, color=color)
+        tank.is_player_character = is_player
+        if sid not in [user.id for user in self.users]:
+            self.users.append(PlayerInfo(sid, 0, 0, 0, 'ai', 0, Vector(0, 0), sid))
+
         self.tanks[sid] = tank
         return tank
 
@@ -74,6 +81,28 @@ class ObjectManager:
         :param owner:
         :return:
         """
+        phantom_bullet = BulletObject(position, bullet)
+        phantom_bullet.velocity = velocity
+        phantom_bullet.owner = owner
+        start_time = datetime.now().timestamp()
+        dt = .1
+        # Force it to the next place if it's not dead without waiting for the physics engine to catch up
+        while not phantom_bullet.dead:
+            phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
+            phantom_bullet.velocity += phantom_bullet.acceleration * dt
+            phantom_bullet.move()
+            # Check for planet collisions
+            for _, planet in self.planets.items():
+                if planet.intersects(phantom_bullet.collision_sphere):
+                    phantom_bullet.dead = True
+                # TODO: Deal with world edge
+                # TODO: Implement Wormholes
+        final_pos = phantom_bullet.position
+        # TODO: Deincentivize suicide shots by figuring out how to maximuze how far away it is from the player
+        self_distance = abs(owner.position-final_pos)
+        if self_distance > 50:
+            self_distance = 1
+        return self.get_nearest_tank_location(final_pos, owner)
 
     async def move(self, server: AsyncServer):
         """
@@ -93,6 +122,12 @@ class ObjectManager:
         for sid, tank in self.tanks.items():
             old_position: Vector = tank.position
             tank.think()
+            if tank.current_state == TankState.FireWait:
+                self.fire_gun_sid(sid)
+                tank.current_state = TankState.PostFire
+            elif tank.current_state == TankState.Think:
+                self.adjust_aim(tank)
+                tank.current_state = TankState.Move
             tank.move()
 
         self.collision_phase()
@@ -142,29 +177,29 @@ class ObjectManager:
         await sio.emit('update-explosions', self.explosions)
         self.explosions = []
 
-        for u in self.users:
-            # center the view if x/y is undefined, this will happen for spectators
-            u.x = u.x or ConfigData.gameWidth / 2
-            u.y = u.y or ConfigData.gameHeight / 2
-
-            def user_mapping_function(f):
-                if f.id != u.id:
-                    return {'id': f.id,
-                            'x': f.x,
-                            'y': f.y,
-                            'hue': f.hue,
-                            'name': f.name
-                            }
-                else:
-                    return {'x': f.x,
-                            'y': f.y,
-                            'hue': f.hue,
-                            'name': f.name
-                            }
-
-            user_transmit = [user_mapping_function(x) for x in self.users]
-            sid = self.sockets[u.id]
-            await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
+        # for u in self.users:
+        #     # center the view if x/y is undefined, this will happen for spectators
+        #     u.x = u.x or ConfigData.gameWidth / 2
+        #     u.y = u.y or ConfigData.gameHeight / 2
+        #
+        #     def user_mapping_function(f):
+        #         if f.id != u.id:
+        #             return {'id': f.id,
+        #                     'x': f.x,
+        #                     'y': f.y,
+        #                     'hue': f.hue,
+        #                     'name': f.name
+        #                     }
+        #         else:
+        #             return {'x': f.x,
+        #                     'y': f.y,
+        #                     'hue': f.hue,
+        #                     'name': f.name
+        #                     }
+        #
+        #     user_transmit = [user_mapping_function(x) for x in self.users]
+        #     sid = self.sockets[u.id]
+        #     await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
 
     def strafe_right(self, sid):
         try:
@@ -269,7 +304,9 @@ class ObjectManager:
     def fire_gun_sid(self, sid):
         try:
             tank = self.tanks[sid]
-            self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
+            tank.selected_bullet = tank.selected_bullet % len(tank.bullet_counts)
+            if tank.bullet_counts[tank.selected_bullet] > 0:
+                self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
         except KeyError:  # If no tank shows up with that sid, then they are dead
             pass
 
@@ -288,7 +325,7 @@ class ObjectManager:
                 self._explode_bullet(bullet, planet)
 
     # TODO Rename this here and in `collision_phase`
-    def _explode_bullet(self, bullet, planet: PlanetObject=None, tank:TankObject=None):
+    def _explode_bullet(self, bullet, planet: PlanetObject = None, tank: TankObject = None):
         self.explosions.append({'x': bullet.position.x,
                                 'y': bullet.position.y,
                                 'sprite': str(bullet.explosion_sprite),
@@ -350,7 +387,7 @@ class ObjectManager:
         :param path: url to the correct file
         :return:
         """
-
+        i = 0
         with open(path, 'r') as file:
             lines = file.readlines()
             for line in lines:
@@ -364,10 +401,56 @@ class ObjectManager:
                                        mass=int(pieces[3]),
                                        radius=int(pieces[4]))
                 elif pieces[0] == 'TANK':
-                    pass
+                    # Todo get planet number (which is pieces[2], since self.planets is a dict
+                    self.create_tank(float(pieces[1]), choice(list(self.planets.values())), sid=f'ai-{i}',
+                                     color=pieces[3], is_player=bool(int(pieces[4])))
+                    i += 1
 
     def next_bullet(self, sid):
         self.tanks[sid].selected_bullet = (self.tanks[sid].selected_bullet + 1) % len(self.tanks[sid].bullet_counts)
 
+    def adjust_aim(self, tank: TankObject, monte_carlo: bool = True):
+        """
 
+        :param monte_carlo:
+        :return:
+        """
+        test_angle: float = tank.desired_angle
+        test_longitude: float = tank.desired_longitude + randint(-10, 10)
+        test_power: float = tank.desired_power
+        test_roll: float = pi + (
+                test_angle + test_longitude) * pi / 180  # Set the roll so that it compensates for the inclination on the planet
+        view: Vector = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
+        previous_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank,
+                                                  tank.position)  # Initial guess, so we have something to compare to.
+        if monte_carlo:
+            for _ in range(int(1000 * tank.accuracy_multiplier)):
+                # Randomize the aim parameters
+                test_angle = randint(-15, 195) % 360
+                test_longitude = test_longitude
+                test_power = float(randint(50, 1000))
+                test_roll = pi + (test_angle + test_longitude) * pi / 180
+                view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
+                new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
+                if (new_distance < previous_distance):
+                    previous_distance = new_distance
+                    deflection = 2.5 * (2 * random() - 1)
+                    tank.desired_angle = test_angle + deflection
+                    tank.desired_longitude = test_longitude
+                    tank.desired_power = test_power
+        else:
+            # Implement either gradient descend and/or particle swarm optimization
+            pass
 
+    def get_nearest_tank_location(self, position: Vector, origin: TankObject):
+        current_closest_length = -1
+        distance: float = 0
+        for _, tank in self.tanks.items():
+            if tank != origin and not tank.dead:
+                distance = abs(position-tank.position)
+                # distance /= 1 - exp(-abs(origin.position - tank.position)**2/250)
+
+        if current_closest_length == -1 or distance < current_closest_length:
+            current_closest_length = distance
+        # TODO: Wormholes and suicide shots
+        return current_closest_length

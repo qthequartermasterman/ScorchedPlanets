@@ -29,7 +29,7 @@ sockets = object_manager.sockets
 #         position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
 #         radius=randint(500, 1000))
 
-object_manager.load_level_file('./levels/Stage 1/Triplets.txt')
+object_manager.load_level_file('./levels/Stage 1/Planet & Moon.txt')
 
 
 @sio.event
@@ -77,7 +77,8 @@ async def gotit(sid, player):
             object_manager.create_tank(longitude=random() * 360,
                                        home_planet=choice(list(object_manager.planets.values())),
                                        sid=sid,
-                                       color=str(int(random() * 360)))
+                                       color=str(int(random() * 360)),
+                                       is_player=True)
             # tanks[sid] = TankObject(longitude=random() * 360,
             #                         planet=choice(list(planets.values())),
             #                         color=str(int(random() * 360))
