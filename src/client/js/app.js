@@ -134,14 +134,14 @@ window.chat = new ChatClient();
 var visibleBorderSetting = document.getElementById('visBord');
 visibleBorderSetting.onchange = settings.toggleBorder;
 
-var showMassSetting = document.getElementById('showMass');
-showMassSetting.onchange = settings.toggleMass;
+// var showMassSetting = document.getElementById('showMass');
+// showMassSetting.onchange = settings.toggleMass;
 
 var continuitySetting = document.getElementById('continuity');
 continuitySetting.onchange = settings.toggleContinuity;
 
-var roundFoodSetting = document.getElementById('roundFood');
-roundFoodSetting.onchange = settings.toggleRoundFood;
+// var roundFoodSetting = document.getElementById('roundFood');
+// roundFoodSetting.onchange = settings.toggleRoundFood;
 
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
