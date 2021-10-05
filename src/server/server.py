@@ -1,3 +1,5 @@
+import asyncio
+from copy import copy
 from datetime import datetime
 from typing import Dict
 from urllib.parse import parse_qs
@@ -23,11 +25,9 @@ sio.attach(app)
 
 def restart_object_manager(level_path: str = ''):
     level_path = level_path or './levels/Stage 1/I Was Here First!.txt'
-    object_manager = ObjectManager()
+    object_manager = ObjectManager(level_path)
     users = object_manager.users
     sockets = object_manager.sockets
-
-    object_manager.load_level_file(level_path)
     return object_manager, users, sockets
 
 
@@ -225,15 +225,23 @@ async def tickPlayer(currentPlayer):
 
 
 async def moveloop():
-    return await object_manager.move(sio)
+    if len(object_manager.sockets) > 0:
+        return await object_manager.move(sio)
+    else:
+        return
 
 
 async def gameloop():
     global object_manager, users, sockets
     if len(object_manager.tanks) < 2:
-        # Restarting game
+        print('Restarting game')
+
+        socket = copy(list(object_manager.sockets.keys()))
+
         object_manager, users, sockets = restart_object_manager('')
-        await sio.emit('respawn')
+        # Disconnect everyone.
+        # await asyncio.gather(*[respawn(sid) for sid in socket])
+        await sio.emit('RIP')
 
 
 # Web server logic

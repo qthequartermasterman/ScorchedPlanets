@@ -1,4 +1,3 @@
-import math
 from enum import Enum, auto
 from math import atan2, pi, asin, ceil
 from random import randint
@@ -7,8 +6,8 @@ import numpy as np
 from socketio import AsyncServer
 
 from .Object import Object
-from .vector import Vector, Sphere, UnitVector
 from .SpriteType import SpriteType
+from .vector import Vector, Sphere, UnitVector
 
 
 class PlanetGenerationAlgo(Enum):
@@ -88,27 +87,7 @@ class PlanetObject(Object):
         self.minimum_altitude = np.min(self.altitudes)
 
     def destroy_terrain(self, object_boundary: Sphere):
-        origin: Vector = self.position  # We will center our coordinate system at the center of the planet
-        center: Vector = object_boundary.center  # Center of the offending object
-        difference: Vector = center - origin
-        r: float = object_boundary.radius  # Radius of the offending object
-        h: float = abs(difference)  # Distance between the planet core and the offending object
-
-        angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
-        # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
-        # object center to its radius. This can be found with a little bit of trigonometry.
-        try:
-            delta_angle: float = abs(asin(r / h))
-        except ValueError as e:
-            delta_angle = abs(asin((r/h+1)%2-1))  # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
-        # The number of altitude indices that that angle translates to
-        delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
-        direction: Vector  # Direction from the planet center to surface at an angle
-        # Altitude index under the center of the offending object
-        altitude_index: int = self.get_altitude_index_under_point(center)
-
-        exposed_indices = (altitude_index + np.arange(-delta_altitude_index,
-                                                      delta_altitude_index)) % self.number_of_altitudes
+        exposed_indices, origin = self._exposed_indices(object_boundary)
 
         for i in exposed_indices:
             angle = 2 * pi * i / self.number_of_altitudes
@@ -130,28 +109,7 @@ class PlanetObject(Object):
         :param object_boundary:
         :return:BoundingSphere that represents the explosion radius.
         """
-        origin: Vector = self.position  # We will center our coordinate system at the center of the planet
-        center: Vector = object_boundary.center  # Center of the offending object
-        difference: Vector = center - origin
-        r: float = object_boundary.radius  # Radius of the offending object
-        h: float = abs(difference)  # Distance between the planet core and the offending object
-
-        angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
-        # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
-        # object center to its radius. This can be found with a little bit of trigonometry.
-        try:
-            delta_angle: float = abs(asin(r / h))
-        except ValueError as e:
-            delta_angle = abs(asin((
-                                               r / h + 1) % 2 - 1))  # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
-        # The number of altitude indices that that angle translates to
-        delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
-        direction: Vector  # Direction from the planet center to surface at an angle
-        # Altitude index under the center of the offending object
-        altitude_index: int = self.get_altitude_index_under_point(center)
-
-        exposed_indices = (altitude_index + np.arange(-delta_altitude_index,
-                                                      delta_altitude_index)) % self.number_of_altitudes
+        exposed_indices, origin = self._exposed_indices(object_boundary)
 
         for i in exposed_indices:
             angle = 2 * pi * i / self.number_of_altitudes
@@ -164,10 +122,9 @@ class PlanetObject(Object):
                 f2: float = abs(second_intersection - self.position)  # length to second intersection
                 # Dump either the rest of the circle (if bottom intersection is in planet)
                 # or the entirety of the way across the circle (if the entire ray is above the planet)
-                self.altitudes[i] += f2-length if length >= f1 else f2 - f1
+                self.altitudes[i] += f2 - length if length >= f1 else f2 - f1
             # self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
             self.changes_queue.append([int(i), int(self.altitudes[i])])
-
 
     def get_altitude_at_angle(self, angle: float) -> int:
         """
@@ -265,3 +222,29 @@ class PlanetObject(Object):
                         and object_boundary.intersects_triangle(self.position, v1, v0)):
                     return True
         return False
+
+    def _exposed_indices(self, object_boundary: Sphere):
+        origin: Vector = self.position  # We will center our coordinate system at the center of the planet
+        center: Vector = object_boundary.center  # Center of the offending object
+        difference: Vector = center - origin
+        r: float = object_boundary.radius  # Radius of the offending object
+        h: float = abs(difference)  # Distance between the planet core and the offending object
+
+        angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
+        # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
+        # object center to its radius. This can be found with a little bit of trigonometry.
+        try:
+            delta_angle: float = abs(asin(r / h))
+        except ValueError:
+            # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
+            # TODO: Figure out a better patch
+            delta_angle = abs(asin((r / h + 1) % 2 - 1))
+            # The number of altitude indices that that angle translates to
+        delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
+        direction: Vector  # Direction from the planet center to surface at an angle
+        # Altitude index under the center of the offending object
+        altitude_index: int = self.get_altitude_index_under_point(center)
+
+        exposed_indices = (altitude_index + np.arange(-delta_altitude_index,
+                                                      delta_altitude_index)) % self.number_of_altitudes
+        return exposed_indices, origin

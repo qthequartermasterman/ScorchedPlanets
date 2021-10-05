@@ -18,7 +18,7 @@ from .vector import Vector, Sphere, UnitVector
 
 
 class ObjectManager:
-    def __init__(self):
+    def __init__(self, file_path: str = ''):
         self.explosions = []
         self.users = []
         self.sockets = {}
@@ -30,6 +30,10 @@ class ObjectManager:
         self.gravity_constant: float = gravity_constant  # Gravity Constant in Newton's Law of Universal Gravitation
         self.softening_parameter: float = 0
         self.dt = .001  # Time step for physics calculations
+
+        self.file_path = file_path
+        if file_path:
+            self.load_level_file(file_path)
 
     def create_planet(self, position: Vector, mass: float = 0, radius: int = 500) -> PlanetObject:
         """
@@ -160,7 +164,7 @@ class ObjectManager:
         for planet in self.planets.values():
             await planet.emit_changes(sio, *args, **kwargs)
 
-        # It creates rendering issues (graphical stuttering) when we send the bullets one at a time.
+        # It creates rendering issues (graphical stuttering) when we send the tanks one at a time.
         # Avoid this by sending all in one msg.
         await sio.emit('update-tanks',
                        [users.get_changes(self.tanks) for users in self.users],
@@ -219,6 +223,7 @@ class ObjectManager:
     def remove_player(self, sid):
         try:
             del self.tanks[sid]
+            self.sockets.pop(sid)
         except KeyError:
             pass
         try:
@@ -520,3 +525,7 @@ class ObjectManager:
         wormhole = WormholeObject(wormhole_position, time_to_live, next_wormhole)
         self.wormholes.append(wormhole)
         return wormhole
+
+    def reset(self, file_path=''):
+        file_path = file_path or self.file_path
+        self.__init__(file_path)

@@ -247,26 +247,26 @@ function setupSocket(socket) {
         window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> joined.');
     });
 
-    socket.on('leaderboard', function (data) {
-        leaderboard = data.leaderboard;
-        var status = '<span class="title">Leaderboard</span>';
-        for (var i = 0; i < leaderboard.length; i++) {
-            status += '<br />';
-            if (leaderboard[i].id == player.id){
-                if(leaderboard[i].name.length !== 0)
-                    status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
-                else
-                    status += '<span class="me">' + (i + 1) + ". An unnamed tank</span>";
-            } else {
-                if(leaderboard[i].name.length !== 0)
-                    status += (i + 1) + '. ' + leaderboard[i].name;
-                else
-                    status += (i + 1) + '. An unnamed tank';
-            }
-        }
-        //status += '<br />Players: ' + data.players;
-        document.getElementById('status').innerHTML = status;
-    });
+    // socket.on('leaderboard', function (data) {
+    //     leaderboard = data.leaderboard;
+    //     var status = '<span class="title">Leaderboard</span>';
+    //     for (var i = 0; i < leaderboard.length; i++) {
+    //         status += '<br />';
+    //         if (leaderboard[i].id == player.id){
+    //             if(leaderboard[i].name.length !== 0)
+    //                 status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
+    //             else
+    //                 status += '<span class="me">' + (i + 1) + ". An unnamed tank</span>";
+    //         } else {
+    //             if(leaderboard[i].name.length !== 0)
+    //                 status += (i + 1) + '. ' + leaderboard[i].name;
+    //             else
+    //                 status += (i + 1) + '. An unnamed tank';
+    //         }
+    //     }
+    //     //status += '<br />Players: ' + data.players;
+    //     document.getElementById('status').innerHTML = status;
+    // });
 
     socket.on('serverMSG', function (data) {
         window.chat.addSystemLine(data);
