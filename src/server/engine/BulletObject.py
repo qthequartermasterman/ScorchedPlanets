@@ -32,9 +32,10 @@ class BulletObject(Object):
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
         self.bounces: int = 0  # Bounces for bouncing bullet (BULLET7)
         self.times_shot: int = 0  # Times shot manually by player after shooting initial bullet (BULLET8)
-        self.bounce_limit: int = 0 # Max number of bounces
+        self.bounce_limit: int = 0  # Max number of bounces
         self.teleporter: bool = False  # Does this bullet teleport the owner?
         self.creates_wormholes: bool = False  # Does this bullet generate a wormhole?
+        self.accelerator: bool = False  # Does this bullet continually accelerate?
 
         # Set the damage, explosion radius, and/or other attributes based on the bullet type
         if sprite_type == SpriteType.BULLET_SPRITE:  # black standard
@@ -77,6 +78,7 @@ class BulletObject(Object):
             self.explosion_radius = 25
             self.collision_radius *= .1
             self.acceleration = self.velocity
+            self.accelerator = True
         elif sprite_type == SpriteType.BULLET10_SPRITE:  # long grey&brown bullet - explode in air when right click
             self.damage = 7.5
             self.explosion_radius = 100

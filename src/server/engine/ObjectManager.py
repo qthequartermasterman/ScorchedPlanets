@@ -122,6 +122,8 @@ class ObjectManager:
             if self.at_world_edge(old_position):
                 bullet.kill()
             bullet.acceleration = self.calculate_gravity(old_position)
+            if bullet.accelerator:
+                bullet.acceleration += bullet.velocity
             # print('Bullet position:', bullet.position, abs(bullet.position))
             # print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
             bullet.move()
@@ -478,6 +480,7 @@ class ObjectManager:
     def adjust_aim(self, tank: TankObject, monte_carlo: bool = True):
         """
 
+        :param tank:
         :param monte_carlo:
         :return:
         """
@@ -529,3 +532,41 @@ class ObjectManager:
     def reset(self, file_path=''):
         file_path = file_path or self.file_path
         self.__init__(file_path)
+
+    async def calculate_trajectory(self, t: SpriteType, position: Vector, velocity: Vector, owner: TankObject):
+        print('Calculating trajectory:', owner, position, velocity)
+        phantom_bullet = BulletObject(position, sprite_type=t)
+        phantom_bullet.owner = owner
+        phantom_bullet.is_phantom = True
+        phantom_bullet.velocity = velocity
+        positions = []
+        # Step it 200 times at once
+        for i in range(200):
+            phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
+            phantom_bullet.move()
+
+            # Only need to check for collision as much as we draw the dots
+            if i % 10 == (datetime.now().timestamp() * 30) % 10:
+                # Check for collisions with planets
+                for planet in self.planets.values():
+                    if planet.intersects(phantom_bullet.collision_sphere):
+                        phantom_bullet.dead = True
+                        break
+                if self.at_world_edge(phantom_bullet.position):
+                    phantom_bullet.dead = True
+                    break
+
+            positions.append((int(phantom_bullet.position.x), int(phantom_bullet.position.x)))
+
+        del phantom_bullet
+        return positions
+
+    async def calculate_all_trajectories(self, sio: AsyncServer, *args, **kwargs):
+        for user in self.users:
+            sid = user.id
+            tank = self.tanks[sid]
+            positions = await self.calculate_trajectory(t=tank.bullet_types[tank.selected_bullet],
+                                                        position=tank.position,
+                                                        velocity=tank.power * -tank.view_vector,
+                                                        owner=tank)
+            await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions}, room=sid, *args, **kwargs)

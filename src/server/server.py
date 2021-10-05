@@ -209,7 +209,7 @@ async def send_objects_initial(*args, **kwargs):
 
 async def send_updates(*args, **kwargs):
     # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
-    return await object_manager.send_updates(sio, *args, **kwargs)
+    await object_manager.send_updates(sio, *args, **kwargs)
 
 
 async def tickPlayer(currentPlayer):

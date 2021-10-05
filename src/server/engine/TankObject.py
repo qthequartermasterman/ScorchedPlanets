@@ -58,7 +58,7 @@ class TankObject(Object):
 
         # AI private variables
         self.is_player_character: bool = False
-        self.accuracy_multiplier: float = 0.01
+        self.accuracy_multiplier: float = 0.001
         self.current_state: TankState = TankState.Wait
         self.desired_angle: float = 45
         # +1 to keep adjusting angle in the pos direction, -1 to adjust in the neg direction, 0 to not change at all.

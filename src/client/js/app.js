@@ -124,6 +124,7 @@ var users = [];
 let explosions = [];
 let planets = []
 let bullets = [];
+let trajectory = [];
 var leaderboard = [];
 var target = {x: player.x, y: player.y};
 global.target = target;
@@ -397,6 +398,10 @@ function setupSocket(socket) {
         socket.emit('2', virusCell);
         reenviar = false;
     });
+
+    socket.on('trajectory', function(data){
+        trajectory = data.positions;
+    })
 }
 
 function drawCircle(centerX, centerY, radius, sides) {
@@ -436,6 +441,11 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
     context.restore()
 }
 
+function getCenterXAndY(object){
+    return {x:object.x - player.x + global.screenWidth/2,
+            y:object.y - player.y + global.screenHeight/2}
+}
+
 function drawExplosion(explosion){
     let centerX = explosion.x - player.x + global.screenWidth / 2 ;
     let centerY = explosion.y - player.y + global.screenHeight / 2 ;
@@ -446,6 +456,17 @@ function drawExplosion(explosion){
 
     rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0)
 }
+
+function drawTrajectory(trajectory){
+    for (let i = 0; i < trajectory.length; i++){
+        let center = getCenterXAndY({x:trajectory[i][0], y:trajectory[i][1]});
+        let centerX = center.x;
+        let centerY = center.y;
+        graph.fillRect(centerX, centerY,1, 1);
+    }
+
+}
+
 
 function drawHPBar(health){
     // Draw bar
@@ -823,7 +844,8 @@ function gameLoop() {
             bullets.forEach(drawBullet);
             explosions.forEach(drawExplosion);
             drawHPBar(player.health)
-            drawInventory()
+            drawInventory();
+            drawTrajectory(trajectory);
 
 
             if (global.borderDraw) {
