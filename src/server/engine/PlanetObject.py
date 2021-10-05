@@ -97,7 +97,10 @@ class PlanetObject(Object):
         angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
         # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
         # object center to its radius. This can be found with a little bit of trigonometry.
-        delta_angle: float = abs(asin(r / h))
+        try:
+            delta_angle: float = abs(asin(r / h))
+        except ValueError as e:
+            delta_angle = abs(asin((r/h+1)%2-1))  # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
         # The number of altitude indices that that angle translates to
         delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
         direction: Vector  # Direction from the planet center to surface at an angle
@@ -136,7 +139,11 @@ class PlanetObject(Object):
         angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
         # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
         # object center to its radius. This can be found with a little bit of trigonometry.
-        delta_angle: float = abs(asin(r / h))
+        try:
+            delta_angle: float = abs(asin(r / h))
+        except ValueError as e:
+            delta_angle = abs(asin((
+                                               r / h + 1) % 2 - 1))  # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
         # The number of altitude indices that that angle translates to
         delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
         direction: Vector  # Direction from the planet center to surface at an angle
@@ -158,7 +165,7 @@ class PlanetObject(Object):
                 # Dump either the rest of the circle (if bottom intersection is in planet)
                 # or the entirety of the way across the circle (if the entire ray is above the planet)
                 self.altitudes[i] += f2-length if length >= f1 else f2 - f1
-            self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
+            # self.altitudes[i] = max(self.altitudes[i], self.core_radius + 5)  # Don't want to expose the core
             self.changes_queue.append([int(i), int(self.altitudes[i])])
 
 

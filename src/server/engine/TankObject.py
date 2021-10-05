@@ -121,7 +121,7 @@ class TankObject(Object):
         :param damage: is the number of hp to reduce.
         :return: the number of health_points after taking damage.
         """
-        print('Tank took damage!')
+        # print('Tank took damage!')
         # The volume with which we will play the "OW" sound. It'll be loud if it does more relative damage.
         # volume = damage / self.health_points
         self.health_points -= damage
@@ -251,7 +251,7 @@ class TankObject(Object):
         States: Manual, Move, MoveLeft, MoveRight, Aim, AimLeft, AimRight, Power, PowerUp, PowerDown, Fire, Wait, Think
         :return:
         """
-        print(f' Tank { self.id} is thinking', self.current_state)
+        # print(f' Tank { self.id} is thinking', self.current_state)
         # Switch over the current state
         if self.current_state == TankState.Wait:
             # Make sure not dead

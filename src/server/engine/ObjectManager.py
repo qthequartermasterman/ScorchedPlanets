@@ -13,6 +13,7 @@ from .PlanetObject import PlanetObject
 from .PlayerInfo import PlayerInfo
 from .SpriteType import SpriteType
 from .TankObject import TankObject, TankState
+from .WormholeObject import WormholeObject
 from .vector import Vector, Sphere, UnitVector
 
 
@@ -24,9 +25,11 @@ class ObjectManager:
         self.planets: Dict[str, PlanetObject] = {}
         self.tanks: Dict[str, TankObject] = {}
         self.bullets: List[BulletObject] = []
+        self.wormholes: List[WormholeObject] = []
 
         self.gravity_constant: float = gravity_constant  # Gravity Constant in Newton's Law of Universal Gravitation
         self.softening_parameter: float = 0
+        self.dt = .001  # Time step for physics calculations
 
     def create_planet(self, position: Vector, mass: float = 0, radius: int = 500) -> PlanetObject:
         """
@@ -85,7 +88,7 @@ class ObjectManager:
         phantom_bullet.velocity = velocity
         phantom_bullet.owner = owner
         start_time = datetime.now().timestamp()
-        dt = .1
+        dt = self.dt
         # Force it to the next place if it's not dead without waiting for the physics engine to catch up
         while not phantom_bullet.dead:
             phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
@@ -109,7 +112,7 @@ class ObjectManager:
         Move all of the objects and perform collision detection and response
         :return:
         """
-        dt: float = 0.1
+        dt: float = self.dt
         for bullet in self.bullets:
             old_position: Vector = bullet.position
             if self.at_world_edge(old_position):
@@ -226,10 +229,16 @@ class ObjectManager:
             pass
 
     def angle_left(self, sid):
-        self.tanks[sid].rotation_speed = -1
+        try:
+            self.tanks[sid].rotation_speed = -1
+        except KeyError:
+            pass
 
     def angle_right(self, sid):
-        self.tanks[sid].rotation_speed = 1
+        try:
+            self.tanks[sid].rotation_speed = 1
+        except KeyError:
+            pass
 
     def fire_gun(self, bullet: SpriteType, owner: TankObject) -> None:
         """
@@ -311,13 +320,20 @@ class ObjectManager:
             pass
 
     def collision_phase(self):
+        # for bullet, wormhole in product(self.bullets, self.wormholes):
+        #     if wormhole.next_wormhole is not None and wormhole.collision_sphere.intersects_circle(
+        #             bullet.collision_sphere):
+        #         bullet.position = wormhole.next_wormhole.position
+        #         bullet.position += 1.2 * (
+        #                     wormhole.collision_sphere.radius + bullet.collision_sphere.radius) * bullet.velocity
+
         for bullet, tank in product(self.bullets, list(self.tanks.values())):
             intersects, _, _ = bullet.collision_sphere.intersects_circle(tank.collision_sphere)
             # If the bullet intersects a tank
             # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
             # shot them.
             if intersects and tank != bullet.owner:
-                self._explode_bullet(bullet)
+                self._explode_bullet(bullet, tank=tank)
                 tank.take_damage(bullet.damage)
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
@@ -349,21 +365,23 @@ class ObjectManager:
             # Teleport the owner to where this collision is
             bullet.owner.teleport(bullet.position, planet)
         if bullet.creates_wormholes:
-            # Create 2 wormholes
-            # TODO: Implement wormholes
-            delta = bullet.position - planet.position
-            angle = atan2(delta.x, -delta.y) * 180/pi + 90
-
-            dir1vec: Vector = UnitVector(angle * pi/180)
-            dir2vec: Vector = Vector(x=cos(angle + 180*pi/180),
-                                     y=sin(-angle*pi/180))
-            # Generate wormholes 350 units above sealevel
-            worm1pos: Vector = planet.position + dir1vec * (planet.sealevel_radius + 350)
-            worm2pos: Vector = planet.position + dir2vec * (planet.sealevel_radius + 350)
-            # w1 = self.create_wormhole(worm1pos, len(self.tanks) * 2)
-            # w2 = self.create_wormhole(worm2pos, len(self.tanks) * 2, w1)
-            # w1.next_wormhole = w2
+            self._spawn_wormholes(bullet, planet)
         bullet.kill()
+
+    def _spawn_wormholes(self, bullet, planet):
+        # Create 2 wormholes
+        delta = bullet.position - planet.position
+        angle = atan2(delta.x, -delta.y) * 180 / pi + 90
+
+        dir1vec: Vector = UnitVector(angle * pi / 180)
+        dir2vec: Vector = Vector(x=cos(angle + 180 * pi / 180),
+                                 y=sin(-angle * pi / 180))
+        # Generate wormholes 350 units above sea level
+        worm1pos: Vector = planet.position + dir1vec * (planet.sealevel_radius + 350)
+        worm2pos: Vector = planet.position + dir2vec * (planet.sealevel_radius + 350)
+        w1 = self.create_wormhole(worm1pos, len(self.tanks) * 2)
+        w2 = self.create_wormhole(worm2pos, len(self.tanks) * 2, w1)
+        w1.next_wormhole = w2
 
     def bounce_bullet(self, planet: PlanetObject, bullet: BulletObject):
         # Bounce along the surface of the planet
@@ -497,3 +515,8 @@ class ObjectManager:
             current_closest_length = distance
         # TODO: Wormholes and suicide shots
         return current_closest_length
+
+    def create_wormhole(self, wormhole_position: Vector, time_to_live: int, next_wormhole: WormholeObject = None):
+        wormhole = WormholeObject(wormhole_position, time_to_live, next_wormhole)
+        self.wormholes.append(wormhole)
+        return wormhole

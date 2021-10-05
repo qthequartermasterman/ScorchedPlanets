@@ -6,7 +6,6 @@ import socketio
 from random import random, randint, choice
 from aiohttp import web
 
-
 from engine.vector import Vector
 from engine.PlanetObject import PlanetObject
 from engine.util import validNick
@@ -21,15 +20,18 @@ app = web.Application()
 sio = socketio.AsyncServer(async_mode='aiohttp')
 sio.attach(app)
 
-object_manager = ObjectManager()
-users = object_manager.users
-sockets = object_manager.sockets
-# for _ in range(1):
-#     object_manager.create_planet(
-#         position=Vector(ConfigData.gameWidth / 2 + 500 * random(), ConfigData.gameHeight / 2 + 500 * random()),
-#         radius=randint(500, 1000))
 
-object_manager.load_level_file('./levels/Stage 1/Planet & Moon.txt')
+def restart_object_manager(level_path: str = ''):
+    level_path = level_path or './levels/Stage 1/I Was Here First!.txt'
+    object_manager = ObjectManager()
+    users = object_manager.users
+    sockets = object_manager.sockets
+
+    object_manager.load_level_file(level_path)
+    return object_manager, users, sockets
+
+
+object_manager, users, sockets = restart_object_manager()
 
 
 @sio.event
@@ -48,6 +50,7 @@ async def connect(sid, socket, auth):
             lastHeartbeat=datetime.now().timestamp(),  # 'lastHeartbeat': new Date().getTime(),
             target=Vector(0, 0)
         )
+
 
 @sio.event
 async def disconnect(sid):
@@ -111,6 +114,7 @@ async def pingcheck(sid):
     print(f'{sid} is pingchecking.')
     await sio.emit('pongcheck', room=sid)
 
+
 @sio.event
 async def playerChat(sid, data):
     # TODO: Regex replace
@@ -159,37 +163,48 @@ async def heartbeat(sid, target):
         if target['x'] != session["currentPlayer"].x or target['y'] != session["currentPlayer"].y:
             session["currentPlayer"].target = Vector(**target)
 
+
 @sio.event
 async def strafe_left(sid):
     # print(f'{sid} is moving left')
     object_manager.strafe_left(sid)
+
 
 @sio.event
 async def strafe_right(sid):
     # print(f'{sid} is moving right')
     object_manager.strafe_right(sid)
 
+
 @sio.event
 async def angle_left(sid):
     object_manager.angle_left(sid)
+
 
 @sio.event
 async def angle_right(sid):
     object_manager.angle_right(sid)
 
+
 @sio.event
 async def fire_gun(sid):
     object_manager.fire_gun_sid(sid)
 
+
 @sio.event
 async def power_up(sid):
     object_manager.power_up(sid)
+
+
 @sio.event
 async def power_down(sid):
     object_manager.power_down(sid)
+
+
 @sio.event
 async def next_bullet(sid):
     object_manager.next_bullet(sid)
+
 
 async def send_objects_initial(*args, **kwargs):
     return await object_manager.send_objects_initial(sio, *args, **kwargs)
@@ -214,7 +229,11 @@ async def moveloop():
 
 
 async def gameloop():
-    pass
+    global object_manager, users, sockets
+    if len(object_manager.tanks) < 2:
+        # Restarting game
+        object_manager, users, sockets = restart_object_manager('')
+        await sio.emit('respawn')
 
 
 # Web server logic

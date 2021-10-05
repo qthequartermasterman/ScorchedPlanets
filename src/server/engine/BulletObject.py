@@ -27,7 +27,7 @@ class BulletObject(Object):
         self.destroys_terrain: bool = True
         self.generates_terrain: bool = False
         self.explosion_radius: float = 50
-        self.collision_radius: float = 1
+        self.collision_radius: float = 10
         self.explosion_sprite: SpriteType = SpriteType.EXPLOSION1_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
         self.bounces: int = 0  # Bounces for bouncing bullet (BULLET7)
@@ -48,12 +48,12 @@ class BulletObject(Object):
         elif sprite_type == SpriteType.BULLET4_SPRITE:  # grey egg shaped - splits in to 3
             self.damage = 7.5
             self.explosion_radius = 50
-            self.collision_radius = .75
+            self.collision_radius *= .75
             self.time_to_live = 1.25
         elif sprite_type == SpriteType.BULLET5_SPRITE:  # green/red missile - large explosion radius
             self.damage = 12.5
             self.explosion_radius = 160
-            self.collision_radius = .25
+            self.collision_radius *= .25
         elif sprite_type == SpriteType.BULLET6_SPRITE:  # green/grey missile- timed explosion
             self.damage = 10
             self.explosion_radius = 100
@@ -61,40 +61,40 @@ class BulletObject(Object):
         elif sprite_type == SpriteType.BULLET7_SPRITE:  # yellow rounded square - bounces off planets
             self.damage = 7.5
             self.explosion_radius = 50
-            self.collision_radius = .75
+            self.collision_radius *= .75
             self.bounce_limit = 2
         elif sprite_type == SpriteType.BULLET3_SPRITE:  # grey rounded square - teleportation bullet
             self.damage = 0
             self.explosion_radius = 0
-            self.collision_radius = .75
+            self.collision_radius *= .75
             self.teleporter = True
         elif sprite_type == SpriteType.BULLET8_SPRITE:  # yellow egg - shoots bullets when right click
             self.damage = 7.5
             self.explosion_radius = 50
-            self.collision_radius = .75
+            self.collision_radius *= .75
         elif sprite_type == SpriteType.BULLET9_SPRITE:  # pointy grey bullet - accelerates until it hits something
             self.damage = 28
             self.explosion_radius = 25
-            self.collision_radius = .1
+            self.collision_radius *= .1
             self.acceleration = self.velocity
         elif sprite_type == SpriteType.BULLET10_SPRITE:  # long grey&brown bullet - explode in air when right click
             self.damage = 7.5
             self.explosion_radius = 100
-            self.collision_radius = .1
+            self.collision_radius *= .1
         elif sprite_type == SpriteType.BULLET11_SPRITE:  # short red & grey bullet - "fatman"
             self.damage = 35
             self.explosion_radius = 225
-            self.collision_radius = .1
+            self.collision_radius *= .1
             self.explosion_sound = SoundType.EXPLOSION3_SOUND
         elif sprite_type == SpriteType.BULLET12_SPRITE:  # black cannon ball - creates a pair of wormholes
             self.damage = 2.5
             self.explosion_radius = 5
-            self.collision_radius = .1
+            self.collision_radius *= .1
             self.creates_wormholes = True
         elif sprite_type == SpriteType.MINE_SPRITE:
             self.damage = 12.5
             self.explosion_radius = 120
-            self.collision_radius = .75
+            self.collision_radius *= .75
 
     def move(self):
         # print(self.time_created, datetime.now().timestamp())
