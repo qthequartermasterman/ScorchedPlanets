@@ -1,23 +1,20 @@
-import asyncio
+from copy import copy
 from copy import copy
 from datetime import datetime
-from typing import Dict
+from random import random, choice
 from urllib.parse import parse_qs
 
 import socketio
-from random import random, randint, choice
 from aiohttp import web
 
-from engine.vector import Vector
-from engine.PlanetObject import PlanetObject
-from engine.util import validNick
 from engine.Config import ConfigData
 from engine.ObjectManager import ObjectManager
+from engine.PlayerInfo import PlayerInfo
+from engine.util import validNick
+from engine.vector import Vector
+
 
 # Set up Web Server
-from src.server.engine.PlayerInfo import PlayerInfo
-from src.server.engine.TankObject import TankObject
-
 app = web.Application()
 sio = socketio.AsyncServer(async_mode='aiohttp')
 sio.attach(app)
@@ -282,6 +279,6 @@ if __name__ == '__main__':
     setInterval(send_updates, 1000 / ConfigData.networkUpdateFactor)
 
     # Run the web server
-    web.run_app(app)
+    web.run_app(app, port=8000)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

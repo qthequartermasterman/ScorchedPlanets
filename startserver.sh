@@ -1,1 +1,2 @@
-python src/server/server.py
+cd src/server || exit
+python server.py
