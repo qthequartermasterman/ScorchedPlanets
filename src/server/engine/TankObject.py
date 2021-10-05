@@ -1,19 +1,17 @@
 import datetime
-from random import random, randint
+from enum import Enum, auto
+from math import sqrt, pi
+from random import randint
 from typing import List
 
 from socketio import AsyncServer
 
+from .Config import turns_enabled, gravity_constant
 from .Object import Object
 from .PlanetObject import PlanetObject
+from .SoundType import SoundType
 from .SpriteType import SpriteType
 from .vector import Vector, UnitVector
-from .Config import turns_enabled, gravity_constant
-from .SoundType import SoundType
-from . import Common
-
-from enum import Enum, auto
-from math import sqrt, pi, sin, cos
 
 
 class TankState(Enum):

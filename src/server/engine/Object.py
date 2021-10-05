@@ -1,7 +1,6 @@
-from queue import Queue
+from math import cos, sin
 from random import random
 
-import numpy as np
 from socketio import AsyncServer
 
 from .SpriteType import SpriteType
@@ -12,7 +11,7 @@ class Object:
     def __init__(self, position: Vector, sprite_type: SpriteType = None):
         '''
 
-        :param p: Vector representing position
+        :param position: Vector representing position
         '''
 
         self.id = id(self)
@@ -88,11 +87,11 @@ class Object:
         :return:
         """
         assert abs(unit_normal) == 1
-        self.velocity = self.velocity - 2 * self.velocity.dot(unit_normal) * unit_normal
+        self.velocity = self.velocity - 2 * (self.velocity * unit_normal) * unit_normal
 
     @property
     def view_vector(self):
-        return Vector(-np.sin(self.roll), np.cos(self.roll))
+        return Vector(-sin(self.roll), cos(self.roll))
 
     def emit_smoke(self):
         pass
