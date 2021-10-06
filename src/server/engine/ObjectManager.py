@@ -3,7 +3,6 @@ from math import pi, cos, sin, exp, atan2
 from random import random, randint, choice
 from typing import List, Dict
 from itertools import product
-from multiprocessing import Pool
 
 from socketio import AsyncServer
 
