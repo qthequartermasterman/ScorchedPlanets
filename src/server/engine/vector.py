@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from itertools import combinations
 from math import cos, sin, sqrt
 
-
-# from numba.experimental import jitclass
-# from numba import float32, njit
+from numba.experimental import jitclass
+from numba import float32, njit, typeof, deferred_type
 
 
 # @jitclass(spec=[('x', float32), ('y', float32)])
@@ -21,6 +20,9 @@ class Vector:
         return sqrt(self.x ** 2 + self.y ** 2)
 
     def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def equals(self, other):
         return self.x == other.x and self.y == other.y
 
     def __mul__(self, other):
@@ -50,11 +52,19 @@ def UnitVector(angle: float):
     return Vector(cos(angle), sin(angle))
 
 
-# @jitclass
-@dataclass
+def AngleVector(angle: float, magnitude: float):
+    return Vector(magnitude * cos(angle), magnitude * sin(angle))
+
+
+# @jitclass(spec=[('center', Vector.class_type.instance_type), ('radius', float32)])
+# @dataclass
 class Sphere:
     center: Vector
     radius: float
+
+    def __init__(self, center: Vector, radius: float):
+        self.center = center
+        self.radius = radius
 
     def intersects_line(self, origin: Vector, direction: Vector):
         """
@@ -108,7 +118,6 @@ class Sphere:
             first = 0 if abs(points[0] - origin) < abs(points[1] - origin) else 1
             return True, points[first], points[not first]
 
-    # TODO Rename this here and in `Intersects`
     def _intersects_vertical_line(self, origin):
         """
         When dealing with vertical lines, we need to be a bit more clever.
@@ -127,6 +136,20 @@ class Sphere:
         points = Vector(x, y0 + sqrt(inside_sqrt)), Vector(x, y0 - sqrt(inside_sqrt))
         first = 0 if abs(points[0] - origin) < abs(points[1] - origin) else 1
         return True, points[first], points[not first]
+
+    def intersects_circle_fast(self, other_sphere) -> bool:
+        """
+        Determine intersection without getting the points
+        :param other_sphere:
+        :return:
+        """
+        # Determine some constants, for easy access
+        center1 = self.center
+        r1 = self.radius
+        center2 = other_sphere.center
+        r2 = other_sphere.radius
+        distance_between_centers = abs(center2 - center1)
+        return distance_between_centers != 0 and r1 + r2 >= distance_between_centers >= abs(r1 - r2)
 
     def intersects_circle(self, other_sphere) -> (bool, Vector, Vector):
         """

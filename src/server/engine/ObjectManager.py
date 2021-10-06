@@ -3,6 +3,7 @@ from math import pi, cos, sin, exp, atan2
 from random import random, randint, choice
 from typing import List, Dict
 from itertools import product
+from multiprocessing import Pool
 
 from socketio import AsyncServer
 
@@ -94,16 +95,18 @@ class ObjectManager:
         start_time = datetime.now().timestamp()
         dt = self.dt
         # Force it to the next place if it's not dead without waiting for the physics engine to catch up
-        while not phantom_bullet.dead:
-            phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
-            phantom_bullet.velocity += phantom_bullet.acceleration * dt
-            phantom_bullet.move()
-            # Check for planet collisions
-            for _, planet in self.planets.items():
-                if planet.intersects(phantom_bullet.collision_sphere):
-                    phantom_bullet.dead = True
-                # TODO: Deal with world edge
-                # TODO: Implement Wormholes
+        for _ in range(1000):
+            if not phantom_bullet.dead:
+                phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
+                phantom_bullet.velocity += phantom_bullet.acceleration * dt
+                phantom_bullet.position += phantom_bullet.velocity * dt
+                # phantom_bullet.move()
+                # Check for planet collisions
+                for _, planet in self.planets.items():
+                    if planet.intersects(phantom_bullet.collision_sphere):
+                        phantom_bullet.dead = True
+                    # TODO: Deal with world edge
+                    # TODO: Implement Wormholes
         final_pos = phantom_bullet.position
         # TODO: Deincentivize suicide shots by figuring out how to maximuze how far away it is from the player
         self_distance = abs(owner.position - final_pos)
@@ -162,7 +165,6 @@ class ObjectManager:
         #     await user.emit_initial(self.tanks, sio, *args, **kwargs)
 
     async def send_updates(self, sio: AsyncServer, *args, **kwargs):
-        # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
         for planet in self.planets.values():
             await planet.emit_changes(sio, *args, **kwargs)
 
@@ -328,14 +330,14 @@ class ObjectManager:
 
     def collision_phase(self):
         # for bullet, wormhole in product(self.bullets, self.wormholes):
-        #     if wormhole.next_wormhole is not None and wormhole.collision_sphere.intersects_circle(
+        #     if wormhole.next_wormhole is not None and wormhole.collision_sphere.intersects_circle_fast(
         #             bullet.collision_sphere):
         #         bullet.position = wormhole.next_wormhole.position
         #         bullet.position += 1.2 * (
         #                     wormhole.collision_sphere.radius + bullet.collision_sphere.radius) * bullet.velocity
 
         for bullet, tank in product(self.bullets, list(self.tanks.values())):
-            intersects, _, _ = bullet.collision_sphere.intersects_circle(tank.collision_sphere)
+            intersects = bullet.collision_sphere.intersects_circle_fast(tank.collision_sphere)
             # If the bullet intersects a tank
             # Additionally, we don't want the bullets to "misfire" i.e. explode before leaving the tank that
             # shot them.
@@ -445,7 +447,7 @@ class ObjectManager:
         :return:
         """
         for _, tank in self.tanks.items():
-            intersect, _, _ = sphere.intersects_circle(tank.collision_sphere)
+            intersect = sphere.intersects_circle_fast(tank.collision_sphere)
             if intersect:
                 tank.take_damage(damage)
 
@@ -501,7 +503,7 @@ class ObjectManager:
                 test_roll = pi + (test_angle + test_longitude) * pi / 180
                 view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
                 new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
-                if (new_distance < previous_distance):
+                if new_distance < previous_distance:
                     previous_distance = new_distance
                     deflection = 2.5 * (2 * random() - 1)
                     tank.desired_angle = test_angle + deflection

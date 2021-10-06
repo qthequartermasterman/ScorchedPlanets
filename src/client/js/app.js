@@ -316,6 +316,7 @@ function setupSocket(socket) {
         bullets = bulletList
     });
     socket.on('update-tanks', function(tankList){
+        //console.log('Receiving tank updates', Date.now())
         users = tankList.filter((t)=>{return typeof(t.sprite) != 'undefined'});
         for (let i = 0; i < users.length; i++) {
             if (users[i].id == socket.id) {
@@ -845,7 +846,7 @@ function gameLoop() {
             explosions.forEach(drawExplosion);
             drawHPBar(player.health)
             drawInventory();
-            drawTrajectory(trajectory);
+            //drawTrajectory(trajectory);
 
 
             if (global.borderDraw) {

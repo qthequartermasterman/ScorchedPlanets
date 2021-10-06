@@ -1,13 +1,22 @@
 from enum import Enum, auto
 from math import atan2, pi, asin, ceil
 from random import randint
+from multiprocessing import Pool
+from itertools import tee
 
 import numpy as np
 from socketio import AsyncServer
 
 from .Object import Object
 from .SpriteType import SpriteType
-from .vector import Vector, Sphere, UnitVector
+from .vector import Vector, Sphere, UnitVector, AngleVector
+
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 class PlanetGenerationAlgo(Enum):
@@ -159,7 +168,8 @@ class PlanetObject(Object):
 
     def get_surface_vector_at_index(self, altitude_index: int):
         angle = 2 * pi * altitude_index / self.number_of_altitudes
-        return self.position + self.altitudes[altitude_index % self.number_of_altitudes] * UnitVector(angle)
+        return self.position + AngleVector(angle=angle,
+                                           magnitude=self.altitudes[altitude_index % self.number_of_altitudes])
 
     def get_slope_at_longitude(self, longitude: float):
         """
@@ -198,11 +208,12 @@ class PlanetObject(Object):
                            },
                           *args, **kwargs)
 
-    def intersects(self, object_boundary: Sphere) -> bool:
-        intersects_core, _, _ = self.core_sphere.intersects_circle(object_boundary)
+    def intersects(self, object_boundary: Sphere, pool: Pool = None) -> bool:
+        intersects_core = self.core_sphere.intersects_circle_fast(object_boundary)
         if intersects_core:
             return True
-        if self.maximum_altitude_sphere.intersects_circle(object_boundary):
+        intersects_atmosphere = self.maximum_altitude_sphere.intersects_circle_fast(object_boundary)
+        if intersects_atmosphere:
             center = object_boundary.center
             altitude_index = self.get_altitude_index_under_point(center)
 
@@ -210,10 +221,14 @@ class PlanetObject(Object):
             # A triangle has vertices of the planet center and the surface positions at two adjacent altitudes indices
             # We check two triangles back and two triangles forward.
 
-            for i in range(-2, 2):
-                current_index = (altitude_index + i) % self.number_of_altitudes
-                v0: Vector = self.get_surface_vector_at_index(current_index)
-                v1: Vector = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
+            vertices = [self.get_surface_vector_at_index((altitude_index + i) % self.number_of_altitudes) for i in
+                        range(-2, 2)]
+
+            # #for i in range(-2, 2):
+            #     current_index = (altitude_index + i) % self.number_of_altitudes
+            #     v0: Vector = self.get_surface_vector_at_index(current_index)
+            #     v1: Vector = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
+            for v0, v1 in pairwise(vertices):
                 # print('checking', self.position, v1, v0, object_boundary.center)
                 # First make sure none of the points are the same
                 # Things crash if the triangle is degenerate (i.e. two points are the same).
