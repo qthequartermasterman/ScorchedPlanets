@@ -224,11 +224,11 @@ class PlanetObject(Object):
             # vertices = [self.get_surface_vector_at_index((altitude_index + i) % self.number_of_altitudes) for i in
             #             range(-2, 2)]
 
+            # for v0, v1 in pairwise(vertices):
             for i in range(-2, 2):
                 current_index = (altitude_index + i) % self.number_of_altitudes
                 v0: Vector = self.get_surface_vector_at_index(current_index)
                 v1: Vector = self.get_surface_vector_at_index((current_index + 1) % self.number_of_altitudes)
-            # for v0, v1 in pairwise(vertices):
                 # print('checking', self.position, v1, v0, object_boundary.center)
                 # First make sure none of the points are the same
                 # Things crash if the triangle is degenerate (i.e. two points are the same).

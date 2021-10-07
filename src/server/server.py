@@ -208,7 +208,6 @@ async def send_objects_initial(*args, **kwargs):
 
 
 async def send_updates(*args, **kwargs):
-    # await sio.emit('serverTellPlayerMove', [visibleCells, visibleFood, visibleMass, visibleVirus], room=sid)
     await object_manager.send_updates(sio, *args, **kwargs)
 
 
@@ -222,10 +221,10 @@ async def tickPlayer(currentPlayer):
 
 
 async def moveloop():
-    if len(object_manager.sockets) > 0:
-        return await object_manager.move(sio)
-    else:
+    if len(object_manager.sockets) <= 0:
         return
+    await object_manager.move(sio)
+    # await object_manager.calculate_all_trajectories(sio)
 
 
 async def gameloop():

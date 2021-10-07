@@ -46,6 +46,8 @@ class Vector:
     def __neg__(self):
         return Vector(-self.x, -self.y)
 
+    def __repr__(self):
+        return f'Vector({self.x}, {self.y})'
 
 # @njit
 def UnitVector(angle: float):

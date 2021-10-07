@@ -565,9 +565,12 @@ class ObjectManager:
     async def calculate_all_trajectories(self, sio: AsyncServer, *args, **kwargs):
         for user in self.users:
             sid = user.id
-            tank = self.tanks[sid]
-            positions = await self.calculate_trajectory(t=tank.bullet_types[tank.selected_bullet],
-                                                        position=tank.position,
-                                                        velocity=tank.power * -tank.view_vector,
-                                                        owner=tank)
-            await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions}, room=sid, *args, **kwargs)
+            try:
+                tank = self.tanks[sid]
+                positions = await self.calculate_trajectory(t=tank.bullet_types[tank.selected_bullet],
+                                                            position=tank.position,
+                                                            velocity=tank.power * -tank.view_vector,
+                                                            owner=tank)
+                await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions}, room=sid, *args, **kwargs)
+            except KeyError:
+                pass
