@@ -150,7 +150,6 @@ class ObjectManager:
         for sid_tank in self.tanks.items():
             self.move_tank(sid_tank)
 
-
         self.collision_phase()
         await self.cull_dead_objects(server)
 
@@ -488,8 +487,7 @@ class ObjectManager:
     def next_bullet(self, sid):
         self.tanks[sid].selected_bullet = (self.tanks[sid].selected_bullet + 1) % len(self.tanks[sid].bullet_counts)
 
-
-    def random_aim_once(self, tank:TankObject, longitude):
+    def random_aim_once(self, tank: TankObject, longitude):
         # Randomize the aim parameters
         test_angle = randint(-15, 195) % 360
         test_longitude = longitude
@@ -498,7 +496,6 @@ class ObjectManager:
         view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
         new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
         return test_angle, test_power, test_roll, new_distance
-
 
     def adjust_aim(self, tank: TankObject, monte_carlo: bool = True):
         """
