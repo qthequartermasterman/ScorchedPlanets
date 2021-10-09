@@ -146,6 +146,7 @@ continuitySetting.onchange = settings.toggleContinuity;
 
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
+var health_ctx = document.getElementById('cvs-healthbar').getContext('2d');
 
 $( "#feed" ).click(function() {
     socket.emit('1');
@@ -321,6 +322,7 @@ function setupSocket(socket) {
         for (let i = 0; i < users.length; i++) {
             if (users[i].id == socket.id) {
                 //console.log('found player')
+                let health_inventory_changes = false;
                 var xoffset = player.x - users[i].x;
                 var yoffset = player.y - users[i].y;
 
@@ -329,11 +331,25 @@ function setupSocket(socket) {
                 player.hue = users[i].hue;
                 player.xoffset = isNaN(xoffset) ? 0 : xoffset;
                 player.yoffset = isNaN(yoffset) ? 0 : yoffset;
-                player.health = users[i].health;
-                player.selected_bullet = users[i].selected_bullet;
-                player.bullet_counts = users[i].bullet_counts;
+                if (player.health !== users[i].health){
+                    player.health = users[i].health;
+                    health_inventory_changes = true;
+                }
+                if (player.selected_bullet !== users[i].selected_bullet){
+                    player.selected_bullet = users[i].selected_bullet;
+                    health_inventory_changes = true;
+                }
+                if (player.bullet_counts !== users[i].bullet_counts){
+                    player.bullet_counts = users[i].bullet_counts;
+                    health_inventory_changes = true;
+                }
                 player.bullet_sprites = users[i].bullet_sprites;
+                if( health_inventory_changes){
+                    drawHPBar(player.health);
+                    drawInventory();
+                }
             }
+
         }
     });
 
@@ -476,28 +492,29 @@ function drawTrajectory(trajectory){
 
 
 function drawHPBar(health){
+    //Clear
+    health_ctx.clearRect(0, 0, global.screenWidth, global.screenHeight);
     // Draw bar
-    graph.drawImage(sprites.HPBAR_SPRITE, 0, 0);
+    health_ctx.drawImage(sprites.HPBAR_SPRITE, 0, 0);
 
     //Draw segments
     let current_x = 8
     for (let i=0; i < health/4; i++){
-        graph.drawImage(sprites.HPSEGMENT_SPRITE,current_x, 40);
+        health_ctx.drawImage(sprites.HPSEGMENT_SPRITE,current_x, 40);
         current_x += sprites.HPSEGMENT_SPRITE.width;
     }
 
     // Text
-    graph.fillStyle = "#ff8c00";
-    graph.textAlign = "center";
-    graph.font = "24px Arial";
-    graph.fillText(health + "%", 250,90);
+    health_ctx.fillStyle = "#ff8c00";
+    health_ctx.textAlign = "center";
+    health_ctx.font = "24px Arial";
+    health_ctx.fillText(health + "%", 250,90);
 
     //TODO: Fuel bar
 }
 
 function drawInventory(){
     let selectedIndex = player.selected_bullet;
-
     graph.fillStyle = "#ffffffff";
     graph.textAlign = "left";
     graph.font = "24px Arial";
@@ -838,35 +855,18 @@ function gameLoop() {
     }
     else if (!global.disconnected) {
         if (global.gameStart) {
-            //graph.fillStyle = global.backgroundColor;
-            //graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
             graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
-
-            //drawgrid();
-            //foods.forEach(drawFood);
-            //fireFood.forEach(drawFireFood);
-            //viruses.forEach(drawVirus);
             planets.forEach(drawPlanet)
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
             explosions.forEach(drawExplosion);
-            drawHPBar(player.health)
+            //drawHPBar(player.health)
             drawInventory();
             //drawTrajectory(trajectory);
-
 
             if (global.borderDraw) {
                 drawborder();
             }
-            // var orderMass = [];
-            // for(var i=0; i<users.length; i++) {
-            //     orderMass.push({
-            //             nCell: i,
-            //             nDiv: 0,
-            //         });
-            // }
-
-            //drawPlayers(orderMass);
             socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
 
         } else {
@@ -905,10 +905,10 @@ window.addEventListener('resize', resize);
 function resize() {
     if (!socket) return;
 
-    player.screenWidth = c.width = global.screenWidth = global.playerType == 'player' ? window.innerWidth : global.gameWidth;
-    player.screenHeight = c.height = global.screenHeight = global.playerType == 'player' ? window.innerHeight : global.gameHeight;
+    player.screenWidth = c.width = global.screenWidth = global.playerType === 'player' ? window.innerWidth : global.gameWidth;
+    player.screenHeight = c.height = global.screenHeight = global.playerType === 'player' ? window.innerHeight : global.gameHeight;
 
-    if (global.playerType == 'spectate') {
+    if (global.playerType === 'spectate') {
         player.x = global.gameWidth / 2;
         player.y = global.gameHeight / 2;
     }

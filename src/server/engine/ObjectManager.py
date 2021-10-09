@@ -3,6 +3,7 @@ from math import pi, cos, sin, exp, atan2
 from random import random, randint, choice
 from typing import List, Dict
 from itertools import product
+from multiprocessing import Pool
 
 from socketio import AsyncServer
 
@@ -30,6 +31,8 @@ class ObjectManager:
         self.gravity_constant: float = gravity_constant  # Gravity Constant in Newton's Law of Universal Gravitation
         self.softening_parameter: float = 0
         self.dt = .001  # Time step for physics calculations
+
+        self.pool = Pool(8)
 
         self.file_path = file_path
         if file_path:
@@ -113,33 +116,40 @@ class ObjectManager:
             self_distance = 1
         return self.get_nearest_tank_location(final_pos, owner)
 
+    def move_bullet(self, bullet):
+        old_position: Vector = bullet.position
+        if self.at_world_edge(old_position):
+            bullet.kill()
+        bullet.acceleration = self.calculate_gravity(old_position)
+        if bullet.accelerator:
+            bullet.acceleration += bullet.velocity
+        # print('Bullet position:', bullet.position, abs(bullet.position))
+        # print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
+        bullet.move()
+
+    def move_tank(self, sid_tank):
+        sid, tank = sid_tank
+        # old_position: Vector = tank.position
+        tank.think()
+        if tank.current_state == TankState.FireWait:
+            self.fire_gun_sid(sid)
+            tank.current_state = TankState.PostFire
+        elif tank.current_state == TankState.Think:
+            self.adjust_aim(tank)
+            tank.current_state = TankState.Move
+        tank.move()
+
     async def move(self, server: AsyncServer):
         """
         Move all of the objects and perform collision detection and response
         :return:
         """
-        dt: float = self.dt
-        for bullet in self.bullets:
-            old_position: Vector = bullet.position
-            if self.at_world_edge(old_position):
-                bullet.kill()
-            bullet.acceleration = self.calculate_gravity(old_position)
-            if bullet.accelerator:
-                bullet.acceleration += bullet.velocity
-            # print('Bullet position:', bullet.position, abs(bullet.position))
-            # print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
-            bullet.move()
 
-        for sid, tank in self.tanks.items():
-            old_position: Vector = tank.position
-            tank.think()
-            if tank.current_state == TankState.FireWait:
-                self.fire_gun_sid(sid)
-                tank.current_state = TankState.PostFire
-            elif tank.current_state == TankState.Think:
-                self.adjust_aim(tank)
-                tank.current_state = TankState.Move
-            tank.move()
+        for bullet in self.bullets:
+            self.move_bullet(bullet)
+        for sid_tank in self.tanks.items():
+            self.move_tank(sid_tank)
+
 
         self.collision_phase()
         await self.cull_dead_objects(server)
@@ -478,6 +488,18 @@ class ObjectManager:
     def next_bullet(self, sid):
         self.tanks[sid].selected_bullet = (self.tanks[sid].selected_bullet + 1) % len(self.tanks[sid].bullet_counts)
 
+
+    def random_aim_once(self, tank:TankObject, longitude):
+        # Randomize the aim parameters
+        test_angle = randint(-15, 195) % 360
+        test_longitude = longitude
+        test_power = float(randint(50, 1000))
+        test_roll = pi + (test_angle + test_longitude) * pi / 180
+        view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
+        new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
+        return test_angle, test_power, test_roll, new_distance
+
+
     def adjust_aim(self, tank: TankObject, monte_carlo: bool = True):
         """
 
@@ -494,23 +516,34 @@ class ObjectManager:
         previous_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank,
                                                   tank.position)  # Initial guess, so we have something to compare to.
         if monte_carlo:
-            for _ in range(int(1000 * tank.accuracy_multiplier)):
-                # Randomize the aim parameters
-                test_angle = randint(-15, 195) % 360
-                test_longitude = test_longitude
-                test_power = float(randint(50, 1000))
-                test_roll = pi + (test_angle + test_longitude) * pi / 180
-                view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
-                new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
+            trials = [self.random_aim_once(tank, test_longitude) for _ in range(int(1000 * tank.accuracy_multiplier))]
+            for test_angle, test_power, test_roll, new_distance in trials:
                 if new_distance < previous_distance:
                     previous_distance = new_distance
                     deflection = 2.5 * (2 * random() - 1)
                     tank.desired_angle = test_angle + deflection
                     tank.desired_longitude = test_longitude
                     tank.desired_power = test_power
+
+            # for _ in range(int(1000 * tank.accuracy_multiplier)):
+            #     # Randomize the aim parameters
+            #     # test_angle = randint(-15, 195) % 360
+            #     # test_longitude = test_longitude
+            #     # test_power = float(randint(50, 1000))
+            #     # test_roll = pi + (test_angle + test_longitude) * pi / 180
+            #     # view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
+            #     # new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
+            #     test_angle, test_power, test_roll, new_distance = self.random_aim_once(tank, test_longitude)
+            #     if new_distance < previous_distance:
+            #         previous_distance = new_distance
+            #         deflection = 2.5 * (2 * random() - 1)
+            #         tank.desired_angle = test_angle + deflection
+            #         tank.desired_longitude = test_longitude
+            #         tank.desired_power = test_power
         else:
             # Implement either gradient descend and/or particle swarm optimization
-            pass
+            """"""
+            print()
 
     def get_nearest_tank_location(self, position: Vector, origin: TankObject):
         current_closest_length = -1

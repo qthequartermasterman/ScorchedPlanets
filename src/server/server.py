@@ -1,6 +1,7 @@
 from copy import copy
 from copy import copy
 from datetime import datetime
+from multiprocessing import freeze_support
 from random import random, choice
 from urllib.parse import parse_qs
 
@@ -28,7 +29,6 @@ def restart_object_manager(level_path: str = ''):
     return object_manager, users, sockets
 
 
-object_manager, users, sockets = restart_object_manager()
 
 
 @sio.event
@@ -263,6 +263,9 @@ def setInterval(func, timeout):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    freeze_support()
+
+    object_manager, users, sockets = restart_object_manager()
     # Add the static files
     app.router.add_get('/', index)
     app.router.add_get('/favicon.ico', favicon)

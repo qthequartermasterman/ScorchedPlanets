@@ -15,6 +15,13 @@ html, body, canvas {
     padding: 0;
 }
 
+#cvs-healthbar {
+    position: fixed;
+    left:0;
+    width: 300px;
+    height: 160px;
+}
+
 div {
     -webkit-user-select: none; /* webkit (safari, chrome) browsers */
     -moz-user-select: none; /* mozilla browsers */

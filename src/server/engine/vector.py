@@ -30,6 +30,10 @@ class Vector:
             return self.x * other.x + self.y * other.y
         else:
             return Vector(other * self.x, other * self.y)
+        # try:
+        #     return self.x * other.x + self.y * other.y
+        # except AttributeError:
+        #     return Vector(other * self.x, other * self.y)
 
     def __rmul__(self, other):
         return self * other
