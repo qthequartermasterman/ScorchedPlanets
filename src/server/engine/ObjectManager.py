@@ -32,7 +32,7 @@ class ObjectManager:
         self.softening_parameter: float = 0
         self.dt = .001  # Time step for physics calculations
 
-        self.pool = Pool(8)
+        self.level_name = ''
 
         self.file_path = file_path
         if file_path:
@@ -471,7 +471,7 @@ class ObjectManager:
             for line in lines:
                 pieces = line.split()
                 if pieces[0] == 'NAME':
-                    pass
+                    self.level_name = ' '.join(pieces[1:])
                 elif pieces[0] == 'WORLD':
                     pass
                 elif pieces[0] == 'PLANET':

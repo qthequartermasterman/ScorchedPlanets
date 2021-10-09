@@ -1,12 +1,8 @@
-from dataclasses import dataclass
+
 from itertools import combinations
 from math import cos, sin, sqrt
 
-from numba.experimental import jitclass
-from numba import float32, njit, typeof, deferred_type
 
-
-# @jitclass(spec=[('x', float32), ('y', float32)])
 class Vector:
     x: float
     y: float
@@ -53,7 +49,7 @@ class Vector:
     def __repr__(self):
         return f'Vector({self.x}, {self.y})'
 
-# @njit
+
 def UnitVector(angle: float):
     return Vector(cos(angle), sin(angle))
 
@@ -62,8 +58,6 @@ def AngleVector(angle: float, magnitude: float):
     return Vector(magnitude * cos(angle), magnitude * sin(angle))
 
 
-# @jitclass(spec=[('center', Vector.class_type.instance_type), ('radius', float32)])
-# @dataclass
 class Sphere:
     center: Vector
     radius: float
