@@ -301,7 +301,7 @@ class ObjectManager:
         # TODO: Gunfire particle effect on client side
 
     def fire_phantom_gun(self, bullet: SpriteType, orientation: Vector, power: float, owner: TankObject,
-                         position: Vector = Vector(0, 0)) -> float:
+                         position: Vector = None) -> float:
         """
 
         :param bullet:
@@ -311,7 +311,7 @@ class ObjectManager:
         :param position:
         :return:
         """
-        if position == Vector(0, 0):  # In the default case, use the current position
+        if position is None:  # In the default case, use the current position
             position = owner.position
         position = position + .5 * owner.collision_radius * orientation
         power = owner.power
@@ -521,22 +521,6 @@ class ObjectManager:
                     tank.desired_angle = test_angle + deflection
                     tank.desired_longitude = test_longitude
                     tank.desired_power = test_power
-
-            # for _ in range(int(1000 * tank.accuracy_multiplier)):
-            #     # Randomize the aim parameters
-            #     # test_angle = randint(-15, 195) % 360
-            #     # test_longitude = test_longitude
-            #     # test_power = float(randint(50, 1000))
-            #     # test_roll = pi + (test_angle + test_longitude) * pi / 180
-            #     # view = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
-            #     # new_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank, tank.position)
-            #     test_angle, test_power, test_roll, new_distance = self.random_aim_once(tank, test_longitude)
-            #     if new_distance < previous_distance:
-            #         previous_distance = new_distance
-            #         deflection = 2.5 * (2 * random() - 1)
-            #         tank.desired_angle = test_angle + deflection
-            #         tank.desired_longitude = test_longitude
-            #         tank.desired_power = test_power
         else:
             # Implement either gradient descend and/or particle swarm optimization
             """"""
