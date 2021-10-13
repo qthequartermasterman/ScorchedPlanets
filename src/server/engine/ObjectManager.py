@@ -354,7 +354,9 @@ class ObjectManager:
                 tank.take_damage(bullet.damage)
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
+            print('Checking planet-bullet intersection')
             if planet.intersects(bullet.collision_sphere):
+                print('Detected planet-bullet intersection')
                 self._explode_bullet(bullet, planet)
 
     def _explode_bullet(self, bullet: BulletObject, planet: PlanetObject = None, tank: TankObject = None):
@@ -480,8 +482,9 @@ class ObjectManager:
                                        radius=int(pieces[4]))
                 elif pieces[0] == 'TANK':
                     # Todo get planet number (which is pieces[2], since self.planets is a dict
-                    self.create_tank(float(pieces[1]), choice(list(self.planets.values())), sid=f'ai-{i}',
-                                     color=pieces[3], is_player=bool(int(pieces[4])))
+                    if bool(int(pieces[4])):
+                        self.create_tank(float(pieces[1]), choice(list(self.planets.values())), sid=f'ai-{i}',
+                                         color=pieces[3], is_player=bool(int(pieces[4])))
                     i += 1
 
     def next_bullet(self, sid):
