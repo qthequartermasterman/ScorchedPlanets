@@ -66,6 +66,9 @@ class Sphere:
         self.center = center
         self.radius = radius
 
+    def __repr__(self):
+        return f'Sphere: center={self.center}, radius={self.radius}'
+
     def intersects_line(self, origin: Vector, direction: Vector):
         """
         Determines whether the sphere intersects with a given line defined by an origin (point on line) and direction
@@ -150,6 +153,13 @@ class Sphere:
         r2 = other_sphere.radius
         distance_between_centers = abs(center2 - center1)
         return distance_between_centers != 0 and r1 + r2 >= distance_between_centers >= abs(r1 - r2)
+
+    def intersects_circle_solid_fast(self, other_sphere) -> bool:
+        center1 = self.center
+        r1 = self.radius
+        center2 = other_sphere.center
+        r2 = other_sphere.radius
+        return abs(center2 - center1) < max(r1, r2)
 
     def intersects_circle(self, other_sphere) -> (bool, Vector, Vector):
         """
