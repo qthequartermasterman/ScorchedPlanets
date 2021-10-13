@@ -209,13 +209,15 @@ class PlanetObject(Object):
                           *args, **kwargs)
 
     def intersects(self, object_boundary: Sphere) -> bool:
-        intersects_core = self.core_sphere.intersects_circle_fast(object_boundary)
+        intersects_core = self.core_sphere.intersects_circle_solid_fast(object_boundary)
         if intersects_core:
             return True
-        intersects_atmosphere = self.maximum_altitude_sphere.intersects_circle_fast(object_boundary)
+        intersects_atmosphere = self.maximum_altitude_sphere.intersects_circle_solid_fast(object_boundary)
         if intersects_atmosphere:
             center = object_boundary.center
             altitude_index = self.get_altitude_index_under_point(center)
+            # if abs(center-self.position) - object_boundary.radius < self.get_altitude_under_point(center):
+            #     return True
 
             # Now, we need to check if it intersects the triangles below the point.
             # A triangle has vertices of the planet center and the surface positions at two adjacent altitudes indices
@@ -233,8 +235,9 @@ class PlanetObject(Object):
                 # First make sure none of the points are the same
                 # Things crash if the triangle is degenerate (i.e. two points are the same).
                 # Then check if the object intersects the triangle
-                if (self.position != v0 != v1 != self.position
-                        and object_boundary.intersects_triangle(self.position, v1, v0)):
+                # if (self.position != v0 != v1 != self.position
+                #         and object_boundary.intersects_triangle(self.position, v1, v0)):
+                if object_boundary.intersects_triangle(self.position, v1, v0):
                     return True
         return False
 
