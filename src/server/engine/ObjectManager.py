@@ -120,6 +120,30 @@ class ObjectManager:
         old_position: Vector = bullet.position
         if self.at_world_edge(old_position):
             bullet.kill()
+
+        if bullet.splitter:
+            if datetime.now().timestamp() - bullet.time_created >= bullet.splitter_time != 0:
+                rads: float = 20.0 * pi / 180  # Convert degrees to radians
+                for i in range(bullet.splitter_counter):
+                    new_bullet = self.create_bullet(bullet_sprite=bullet.sprite_type,
+                                                    position=old_position,
+                                                    trail_color=bullet.hue)
+                    new_bullet.owner = bullet.owner
+                    new_bullet.roll = bullet.roll
+                    new_bullet.time_to_live = 15
+                    new_bullet.splitter = False
+
+                    # Move the bullets into trajectories that are rads apart.
+                    new_bullet.velocity = bullet.velocity
+                    if i == 0:
+                        new_bullet.velocity = Vector(cos(rads) * bullet.velocity.x - sin(rads) * bullet.velocity.y,
+                                                     sin(rads) * bullet.velocity.x + cos(rads) * bullet.velocity.y)
+                    elif i == 1:
+                        new_bullet.velocity = Vector(cos(-rads) * bullet.velocity.x - sin(-rads) * bullet.velocity.y,
+                                                     sin(-rads) * bullet.velocity.x + cos(-rads) * bullet.velocity.y)
+                    new_bullet.velocity *= 1.25
+                bullet.kill()
+
         bullet.acceleration = self.calculate_gravity(old_position)
         if bullet.accelerator:
             bullet.acceleration += bullet.velocity

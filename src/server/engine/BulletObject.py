@@ -36,6 +36,9 @@ class BulletObject(Object):
         self.teleporter: bool = False  # Does this bullet teleport the owner?
         self.creates_wormholes: bool = False  # Does this bullet generate a wormhole?
         self.accelerator: bool = False  # Does this bullet continually accelerate?
+        self.splitter: bool = False  # Does this bullet split?
+        self.splitter_time: float = 0  # How long after creation does this bullet split?
+        self.splitter_counter: int = 0  # How many bullets does this split into after bullet split?
 
         # Set the damage, explosion radius, and/or other attributes based on the bullet type
         if sprite_type == SpriteType.BULLET_SPRITE:  # black standard
@@ -50,6 +53,9 @@ class BulletObject(Object):
             self.damage = 7.5
             self.explosion_radius = 50
             self.time_to_live = 1.25
+            self.splitter = True
+            self.splitter_counter = 3
+            self.splitter_time = 1.2
         elif sprite_type == SpriteType.BULLET5_SPRITE:  # green/red missile - large explosion radius
             self.damage = 12.5
             self.explosion_radius = 160
@@ -93,8 +99,6 @@ class BulletObject(Object):
         if datetime.now().timestamp() - self.time_created >= self.time_to_live != -1:
             self.kill()
             return
-
-        # TODO: Implement special stuff like bouncing or whatever for certain bullet types
 
         Object.move(self)
         self.roll = atan2(self.velocity.y, self.velocity.x)
