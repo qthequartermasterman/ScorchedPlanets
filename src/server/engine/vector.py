@@ -1,4 +1,3 @@
-
 from itertools import combinations
 from math import cos, sin, sqrt
 

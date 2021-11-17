@@ -1,5 +1,4 @@
 from copy import copy
-from copy import copy
 from datetime import datetime
 from multiprocessing import freeze_support
 from random import random, choice
@@ -13,7 +12,6 @@ from engine.ObjectManager import ObjectManager
 from engine.PlayerInfo import PlayerInfo
 from engine.util import validNick
 from engine.vector import Vector
-
 
 # Set up Web Server
 app = web.Application()

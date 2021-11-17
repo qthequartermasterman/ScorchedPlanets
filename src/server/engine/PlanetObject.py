@@ -1,8 +1,7 @@
 from enum import Enum, auto
-from math import atan2, pi, asin, ceil
-from random import randint
-from multiprocessing import Pool
 from itertools import tee
+from math import atan2, pi, ceil
+from random import randint
 
 import numpy as np
 from socketio import AsyncServer
