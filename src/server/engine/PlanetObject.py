@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from itertools import tee
-from math import atan2, pi, ceil
+from math import atan2, pi, ceil, e as euler_number
 from random import randint
 
 import numpy as np
@@ -23,11 +23,22 @@ class PlanetGenerationAlgo(Enum):
     FractalNoise = auto()
     PlanetaryNoise = auto()
     Circular = auto()
+    Spiral = auto()
+
+
+class PlanetGenerationAlgoError(ValueError):
+    pass
 
 
 class PlanetObject(Object):
-    def __init__(self, position: Vector, radius: int = 500, step_size: float = 2.718,
-                 planetary_generation_method: PlanetGenerationAlgo = None):
+    def __init__(self, position: Vector, radius: int = 500, planetary_generation_method: PlanetGenerationAlgo = None):
+        """
+        Generate the Planet Object.
+        :param position: Vector representing the center of the planet in game space.
+        :param radius: some integer representing the radius of the planet
+        :param planetary_generation_method: PlanetGenerationAlgo representing how the planet terrain
+        should be generated.
+        """
         super().__init__(position, SpriteType.PLANET_SPRITE)
         self.number_of_altitudes = 360 * 2
         self.altitudes: np.ndarray = np.zeros((self.number_of_altitudes,), dtype=int)  # Initialize all heights as 0
@@ -36,17 +47,35 @@ class PlanetObject(Object):
         self.minimum_altitude = self.sealevel_radius
         self.core_radius = int(.3 * self.sealevel_radius)  # Core starts at 1/3 of the depth of the planet
         self.planetary_generation_method = planetary_generation_method or PlanetGenerationAlgo.PlanetaryNoise
-        # Only planetary is supported right now
-        # self.generate_noise_planetary_method(2000, 2, 0)
-        self.generate_spiral_terrain()
+        self.generate_initial_terrain(self.planetary_generation_method)
         self.maximum_altitude_sphere: Sphere = Sphere(position, np.max(self.altitudes))
         self.core_sphere = Sphere(position, self.core_radius)
         self.mass = float(np.sum(self.altitudes))
 
+    def generate_initial_terrain(self, algorithm: PlanetGenerationAlgo) -> None:
+        """
+        Given an algorithm perform the planetary terrain generation using predefined parameters.
+        :param algorithm: PlanetGenerationAlgo representing the algorithm to use.
+        :return:
+        """
+        if algorithm == PlanetGenerationAlgo.FractalNoise:
+            return self.generate_noise_fractal_naive(num_iterations=1000, step_size=euler_number)
+        elif algorithm == PlanetGenerationAlgo.PlanetaryNoise:
+            return self.generate_noise_planetary_method(num_iterations=2000, height_step=2, indices_to_move=0)
+        elif algorithm == PlanetGenerationAlgo.Circular:
+            return self.generate_circular_terrain()
+        elif algorithm == PlanetGenerationAlgo.Spiral:
+            return self.generate_spiral_terrain()
+        else:
+            raise PlanetGenerationAlgoError(f'{algorithm=} is not a value Planet Generation Algorithm.')
+
     def generate_circular_terrain(self):
+        """Generate circular terrain."""
         self.altitudes = self.sealevel_radius * np.ones_like(self.altitudes)
 
     def generate_spiral_terrain(self):
+        """Generate a spiral. Starting at longitude=0, the height of the planet surface at that angle increases by
+        one with each step. """
         self.altitudes = self.sealevel_radius / self.number_of_altitudes * np.arange(self.number_of_altitudes)
 
     def generate_noise_fractal_naive(self, num_iterations: int, step_size: float):
@@ -60,11 +89,12 @@ class PlanetObject(Object):
 
     def generate_noise_planetary_method(self, num_iterations: int, height_step: int, indices_to_move: int = 0):
         """
-
-        :param num_iterations:
-        :param height_step:
-        :param indices_to_move:
-        :return:
+        Generate a planet terrain by grabbing a random portion of the planet (usually half of the planet), then
+        increasing or decreasing its height by height_step.
+        :param num_iterations: int representing number of times to move part of the terrain
+        :param height_step: int representing the number of height units to move selected terrain each iteration
+        :param indices_to_move: int representing number of indices to move each iteration. Default is 0, which will
+        move half of the planet each iteration.
         """
         # The tallest mountain in the solar system (relative to planet size) is Caloris Montes on Mercury,
         # which is .12% of the radius. .12% however, is /way/ too small for dramatic effect in our game. So we'll
@@ -96,6 +126,10 @@ class PlanetObject(Object):
         self.minimum_altitude = np.min(self.altitudes)
 
     def destroy_terrain(self, object_boundary: Sphere):
+        """
+        Destroy all terrain on the planet that intersects object_boundary.
+        :param object_boundary: Sphere representing the boundary of the offending object (usually an explosion).
+        """
         exposed_indices, origin = self._exposed_indices(object_boundary)
 
         for i in exposed_indices:
@@ -115,8 +149,7 @@ class PlanetObject(Object):
     def generate_terrain(self, object_boundary: Sphere):
         """
         Generates terrain within the explosion radius, which immediately falls down to the planet's surface.
-        :param object_boundary:
-        :return:BoundingSphere that represents the explosion radius.
+        :param object_boundary: Sphere representing the boundary of the offending object (usually an explosion).
         """
         exposed_indices, origin = self._exposed_indices(object_boundary)
 
@@ -137,9 +170,9 @@ class PlanetObject(Object):
 
     def get_altitude_at_angle(self, angle: float) -> int:
         """
-
-        :param angle:
-        :return:
+        Obtain the altitude index underneath a longitude angle.
+        :param angle: float representing the angle in degrees of the planet
+        :return: int representing the altitude index underneath the given angle.
         """
         # The distances are sample of the height of the planet from the core as we walk around the planet. If we have
         # num distances, then each step is 360deg/num
@@ -150,9 +183,9 @@ class PlanetObject(Object):
 
     def get_altitude_under_point(self, point: Vector) -> int:
         """
-
-        :param point:
-        :return:
+        Obtain the altitude index underneath a given point.
+        :param point: Vector representing a point outside of the planet
+        :return: int representing the altitude index underneath the given point.
         """
         direction = point - self.position  # Vector pointing from the center to the outside point.
         angle = atan2(direction.y, direction.x) * 180 / pi  # Calculate the angle of the vector in degrees
@@ -166,7 +199,12 @@ class PlanetObject(Object):
         angle = atan2(direction.y, direction.x) * 180 / pi  # Calculate the angle of the vector in degrees
         return int(int(angle) / degrees_per_altitude_change) % self.number_of_altitudes
 
-    def get_surface_vector_at_index(self, altitude_index: int):
+    def get_surface_vector_at_index(self, altitude_index: int) -> Vector:
+        """
+        Obtain the vector representing the surface position (in game space) of the planet at altitude_index.
+        :param altitude_index: int representing the altitude index to search
+        :return: Vector representing the surface position of the planet at altitude index.
+        """
         angle = 2 * pi * altitude_index / self.number_of_altitudes
         return self.position + AngleVector(angle=angle,
                                            magnitude=self.altitudes[altitude_index % self.number_of_altitudes])
@@ -209,9 +247,16 @@ class PlanetObject(Object):
                           *args, **kwargs)
 
     def intersects(self, object_boundary: Sphere) -> bool:
+        """
+        Determine whether an offending sphere intersects with the planet surface
+        :param object_boundary: Sphere representing the offending object (usually an explosion).
+        :return: True if the sphere intersects the planet, otherwise false.
+        """
+        # If the sphere is within the core, then we can quickly return True
         intersects_core = self.core_sphere.intersects_circle_solid_fast(object_boundary)
         if intersects_core:
             return True
+        # If the sphere does not intersect the atmosphere, then we can quickly return False.
         intersects_atmosphere = self.maximum_altitude_sphere.intersects_circle_solid_fast(object_boundary)
         if intersects_atmosphere:
             center = object_boundary.center
@@ -241,7 +286,13 @@ class PlanetObject(Object):
                     return True
         return False
 
-    def _exposed_indices(self, object_boundary: Sphere):
+    def _exposed_indices(self, object_boundary: Sphere) -> (np.ndarray, Vector):
+        """
+        Obtain all of the indices that are underneath object_boundary. This is used to accelerate certain planet
+        collision checks, by checking only relevant longitude indices.
+        :param object_boundary: Sphere representing the offending object (usually an explosion).
+        :return: ndarray with all of the exposed indices and a Vector representing the center of the planet
+        """
         origin: Vector = self.position  # We will center our coordinate system at the center of the planet
         center: Vector = object_boundary.center  # Center of the offending object
         difference: Vector = center - origin
