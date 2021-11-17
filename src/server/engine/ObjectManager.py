@@ -136,11 +136,9 @@ class ObjectManager:
                     # Move the bullets into trajectories that are rads apart.
                     new_bullet.velocity = bullet.velocity
                     if i == 0:
-                        new_bullet.velocity = Vector(cos(rads) * bullet.velocity.x - sin(rads) * bullet.velocity.y,
-                                                     sin(rads) * bullet.velocity.x + cos(rads) * bullet.velocity.y)
+                        new_bullet.velocity = bullet.velocity.rotate(rads)
                     elif i == 1:
-                        new_bullet.velocity = Vector(cos(-rads) * bullet.velocity.x - sin(-rads) * bullet.velocity.y,
-                                                     sin(-rads) * bullet.velocity.x + cos(-rads) * bullet.velocity.y)
+                        new_bullet.velocity = bullet.velocity.rotate(-rads)
                     new_bullet.velocity *= 1.25
                 bullet.kill()
 

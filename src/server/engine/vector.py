@@ -48,6 +48,15 @@ class Vector:
     def __repr__(self):
         return f'Vector({self.x}, {self.y})'
 
+    def rotate(self, radians: float):
+        """
+        Obtain a new vector by rotating self by radians.
+        :param radians: float representing the angle to rotate in radians
+        :return: a new Vector
+        """
+        return Vector(cos(radians) * self.x - sin(radians) * self.y,
+                      sin(radians) * self.x + cos(radians) * self.y)
+
 
 def UnitVector(angle: float):
     return Vector(cos(angle), sin(angle))
