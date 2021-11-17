@@ -13,7 +13,7 @@ from .vector import Vector, Sphere, UnitVector, AngleVector
 
 
 def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
@@ -38,7 +38,8 @@ class PlanetObject(Object):
         self.core_radius = int(.3 * self.sealevel_radius)  # Core starts at 1/3 of the depth of the planet
         self.planetary_generation_method = planetary_generation_method or PlanetGenerationAlgo.PlanetaryNoise
         # Only planetary is supported right now
-        self.generate_noise_planetary_method(2000, 2, 0)
+        # self.generate_noise_planetary_method(2000, 2, 0)
+        self.generate_spiral_terrain()
         self.maximum_altitude_sphere: Sphere = Sphere(position, np.max(self.altitudes))
         self.core_sphere = Sphere(position, self.core_radius)
         self.mass = float(np.sum(self.altitudes))
@@ -251,13 +252,9 @@ class PlanetObject(Object):
         angle: float  # Angle from the positive x-axis to the altitude we are adjusting.
         # Angle in radians measuring how far we have to sweep (when centered at the planet core) from the offending
         # object center to its radius. This can be found with a little bit of trigonometry.
-        try:
-            delta_angle: float = abs(asin(r / h))
-        except ValueError:
-            # This is a periodic function that is defined in edge cases where the explosion is bigger than the planet
-            # TODO: Figure out a better patch
-            delta_angle = abs(asin((r / h + 1) % 2 - 1))
-            # The number of altitude indices that that angle translates to
+        delta_angle: float = abs(atan2(r, h))
+
+        # The number of altitude indices that that angle translates to
         delta_altitude_index = ceil(delta_angle * self.number_of_altitudes / (2 * pi))
         direction: Vector  # Direction from the planet center to surface at an angle
         # Altitude index under the center of the offending object
