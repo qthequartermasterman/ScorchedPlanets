@@ -1,15 +1,14 @@
 from datetime import datetime
-from math import pi, cos, sin, exp, atan2
+from itertools import product
+from math import pi, cos, sin, atan2
 from random import random, randint, choice
 from typing import List, Dict
-from itertools import product
-from multiprocessing import Pool
 
 from socketio import AsyncServer
 
 from . import Common
 from .BulletObject import BulletObject
-from .Config import ConfigData, gravity_constant, turns_enabled
+from .Config import gravity_constant, turns_enabled
 from .PlanetObject import PlanetObject
 from .PlayerInfo import PlayerInfo
 from .SpriteType import SpriteType
@@ -56,6 +55,7 @@ class ObjectManager:
                     is_player: bool = False) -> TankObject:
         """
         Create a new Tank
+        :param is_player: True if the tank represents a player. Otherwise false.
         :param longitude: float longitude of the tank (angle relative to the planet)
         :param home_planet: PlanetObject of the home planet
         :param color: string representing the color hue of the tank
@@ -79,6 +79,7 @@ class ObjectManager:
         :return:
         """
         bullet = BulletObject(position, bullet_sprite)
+        bullet.hue = trail_color
         self.bullets.append(bullet)
         return bullet
 
@@ -94,7 +95,7 @@ class ObjectManager:
         phantom_bullet = BulletObject(position, bullet)
         phantom_bullet.velocity = velocity
         phantom_bullet.owner = owner
-        start_time = datetime.now().timestamp()
+        datetime.now().timestamp()
         dt = self.dt
         # Force it to the next place if it's not dead without waiting for the physics engine to catch up
         for _ in range(1000):
@@ -110,7 +111,7 @@ class ObjectManager:
                     # TODO: Deal with world edge
                     # TODO: Implement Wormholes
         final_pos = phantom_bullet.position
-        # TODO: Deincentivize suicide shots by figuring out how to maximuze how far away it is from the player
+        # TODO: De-incentivize suicide shots by figuring out how to maximize how far away it is from the player
         self_distance = abs(owner.position - final_pos)
         if self_distance > 50:
             self_distance = 1
@@ -185,7 +186,7 @@ class ObjectManager:
             acceleration += gravity_constant * planet.mass / mag ** 2 * unit
         return acceleration
 
-    def at_world_edge(self, oldpos) -> bool:
+    def at_world_edge(self, old_position) -> bool:
         return False
 
     async def send_objects_initial(self, sio: AsyncServer, *args, **kwargs):
@@ -306,8 +307,6 @@ class ObjectManager:
         bullet = self.create_bullet(bullet, pos, owner.hue)
         bullet.owner = owner
 
-        norm: Vector = Vector(view.y, -view.x)  # normal to direction
-        m: float = 2 * random() - 1
         deflection = Vector(0, 0)
 
         bullet.velocity = owner.power * (view + deflection)  # Power is the starting velocity
@@ -532,8 +531,8 @@ class ObjectManager:
         test_angle: float = tank.desired_angle
         test_longitude: float = tank.desired_longitude + randint(-10, 10)
         test_power: float = tank.desired_power
-        test_roll: float = pi + (
-                test_angle + test_longitude) * pi / 180  # Set the roll so that it compensates for the inclination on the planet
+        # Set the roll so that it compensates for the inclination on the planet
+        test_roll: float = pi + (test_angle + test_longitude) * pi / 180
         view: Vector = Vector(-sin(test_roll), cos(test_roll))  # Orientation of the phantom bullet.
         previous_distance = self.fire_phantom_gun(SpriteType.WATER_SPRITE, view, test_power, tank,
                                                   tank.position)  # Initial guess, so we have something to compare to.
