@@ -375,9 +375,7 @@ class ObjectManager:
                 tank.take_damage(bullet.damage)
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
-            print('Checking planet-bullet intersection')
             if planet.intersects(bullet.collision_sphere):
-                print('Detected planet-bullet intersection')
                 self._explode_bullet(bullet, planet)
 
     def _explode_bullet(self, bullet: BulletObject, planet: PlanetObject = None, tank: TankObject = None):

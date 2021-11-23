@@ -162,7 +162,6 @@ class RoomManager:
         # Add the player to the default room.
         await self.rooms['default'].connect_player(sid, player={})
         self.connected_players[sid] = 'default'
-        print(f'{self.connected_players=}')
         self.sio.enter_room(sid, 'default')
 
     def disconnect_player(self, sid: Sid) -> None:
