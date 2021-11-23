@@ -612,3 +612,12 @@ class ObjectManager:
                 await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions}, room=sid, *args, **kwargs)
             except KeyError:
                 pass
+
+    @property
+    def is_game_over(self) -> bool:
+        """
+        Calculates if the game is over by checking the number of living tanks.
+        If there are less than 2 (i.e. 1 or 0 live tanks), then the game is over.
+        :return: None
+        """
+        return len([tank for tank in self.tanks.values() if not tank.dead]) < 2

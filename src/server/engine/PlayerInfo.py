@@ -18,6 +18,7 @@ class PlayerInfo:
     admin: bool = False
     x: float = 0
     y: float = 0
+    new_room: str = ''
 
     def to_json(self):
         dictionary = {key: value for key, value in self.__dict__.items() if key not in ('target', 'tank')}
