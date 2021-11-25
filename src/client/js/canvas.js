@@ -1,13 +1,13 @@
 //var global = require('./global');
 
 class Canvas {
-    constructor(params) {
+    constructor() {
         this.directionLock = false;
         this.target = global.target;
         this.reenviar = true;
         this.socket = global.socket;
         this.directions = [];
-        var self = this;
+        const self = this;
 
         this.cv = document.getElementById('cvs');
         this.cv.width = global.screenWidth;
@@ -27,17 +27,17 @@ class Canvas {
 
         setInterval(()=>{
             for (let i =0; i < self.directions.length; i++){
-                if (self.directions[i] == global.KEY_A){ // KEY_A is used to move left, since KEY_LEFT is spin turret
+                if (self.directions[i] === global.KEY_A){ // KEY_A is used to move left, since KEY_LEFT is spin turret
                     self.socket.emit('strafe_left');
-                } else if (self.directions[i] == global.KEY_D){ // KEY_D is used to move left, since KEY_RIGHT is spin turret
+                } else if (self.directions[i] === global.KEY_D){ // KEY_D is used to move left, since KEY_RIGHT is spin turret
                     self.socket.emit('strafe_right');
-                } else if (self.directions[i]==global.KEY_LEFT){
+                } else if (self.directions[i]===global.KEY_LEFT){
                     self.socket.emit('angle_left');
-                } else if (self.directions[i]==global.KEY_RIGHT){
+                } else if (self.directions[i]===global.KEY_RIGHT){
                     self.socket.emit('angle_right');
-                } else if (self.directions[i]==global.KEY_UP){
+                } else if (self.directions[i]===global.KEY_UP){
                     self.socket.emit('power_up');
-                } else if (self.directions[i]==global.KEY_DOWN){
+                } else if (self.directions[i]===global.KEY_DOWN){
                     self.socket.emit('power_down');
                 }
             }}, 10)
@@ -73,7 +73,7 @@ class Canvas {
     	var result = false;
     	var found = false;
     	for (var i = 0, len = list.length; i < len; i++) {
-    		if (list[i] == direction) {
+    		if (list[i] === direction) {
     			found = true;
     			if (!isAddition) {
     				result = true;
@@ -99,12 +99,12 @@ class Canvas {
     	var directionVertical = 0;
     	for (var i = 0, len = list.length; i < len; i++) {
     		if (directionHorizontal === 0) {
-    			if (list[i] == global.KEY_LEFT) directionHorizontal -= Number.MAX_VALUE;
-    			else if (list[i] == global.KEY_RIGHT) directionHorizontal += Number.MAX_VALUE;
+    			if (list[i] === global.KEY_LEFT) directionHorizontal -= Number.MAX_VALUE;
+    			else if (list[i] === global.KEY_RIGHT) directionHorizontal += Number.MAX_VALUE;
     		}
     		if (directionVertical === 0) {
-    			if (list[i] == global.KEY_UP) directionVertical -= Number.MAX_VALUE;
-    			else if (list[i] == global.KEY_DOWN) directionVertical += Number.MAX_VALUE;
+    			if (list[i] === global.KEY_UP) directionVertical -= Number.MAX_VALUE;
+    			else if (list[i] === global.KEY_DOWN) directionVertical += Number.MAX_VALUE;
     		}
     	}
     	this.target.x += directionHorizontal;
@@ -117,11 +117,11 @@ class Canvas {
     }
 
     horizontal(key) {
-    	return key == global.KEY_LEFT || key == global.KEY_RIGHT || key == global.KEY_A || key==global.KEY_D;
+    	return key === global.KEY_LEFT || key === global.KEY_RIGHT || key === global.KEY_A || key===global.KEY_D;
     }
 
     vertical(key) {
-    	return key == global.KEY_DOWN || key == global.KEY_UP;
+    	return key === global.KEY_DOWN || key === global.KEY_UP;
     }
 
     // Register when the mouse goes off the canvas.
