@@ -1,3 +1,8 @@
+"""
+Contains all of the functionality for Rooms (which manages player interaction with the game) and the
+the RoomManager (which handles clients' interactions with Rooms and manages the Rooms themselves).
+"""
+
 import asyncio
 import functools
 from asyncio import Future
@@ -12,13 +17,12 @@ from socketio import AsyncServer
 
 from .ObjectManager import ObjectManager
 from .Config import ConfigData
-from .util import validNick
+from .util import validNick, Sid
 from .vector import Vector
 from .PlayerInfo import PlayerInfo
 
-# Type Aliases
-Sid = str
-RoomName = str
+# Type Alias
+RoomName = str  # RoomName is just a string representing some room name. Aliasing makes documentation clearer.
 
 
 class RoomAlreadyExistsError(ValueError):
@@ -42,10 +46,12 @@ class PlayerNotConnectedError(KeyError):
 
 
 def pass_if_no_object_manager_error(function: Callable[[Any], Awaitable[None]]) -> Callable[[Any], Awaitable[None]]:
-    """Pass if there is a no object manager error in this function. This is used as a decorator"""
+    """Pass if there is a no object manager error in this function. This is used as a decorator to avoid repeated
+    exception handling when users send commands to a room with no object manager to handle them. """
 
     @functools.wraps(function)
     async def wrapper(*args, **kwargs):
+        """Wrapper Function that tries the given function, and if it raises a RoomHasNoObjectManager, it passes."""
         try:
             result = await function(*args, **kwargs)
             return result
@@ -62,12 +68,17 @@ class Room:
     Physics-related and game-play functionality lies within the ObjectManager, but Rooms handle connection
     and disconnection as well as messaging.
     """
-    name: RoomName
-    sio: AsyncServer
-    object_manager: Optional[ObjectManager] = None
+    name: RoomName  # Name of this room, used for logging
+    sio: AsyncServer  # The socketio server to send messages to
+    object_manager: Optional[ObjectManager] = None  # ObjectManager object that will hold the game logic.
     connected_sids: Dict[Sid, bool] = field(default_factory=dict)  # Key is sid, value is if they are still connected
 
     async def connect_player(self, sid: Sid, player: Dict):
+        """
+        Mark a player as connected for the first time, including checking the username.
+        :param sid: socket-id of the user client
+        :param player: Dictionary containing player information from the client.
+        """
         self.connected_sids[sid] = True
         if self.object_manager:
             object_manager, users, sockets = self.object_manager, self.object_manager.users, self.object_manager.sockets
@@ -105,27 +116,58 @@ class Room:
                         object_manager.game_started = True
                         print(f'Starting game in room {self.name}')
 
-    def disconect_player(self, sid: Sid):
+    def disconnect_player(self, sid: Sid):
+        """
+        Mark a player as disconnected after they have left a game
+        :param sid: socket-id of the user client
+        """
         self.connected_sids[sid] = False
         if self.object_manager:
             # self.object_manager.remove_player(sid)
             self.object_manager.disconnect_player(sid)
 
     def reconnect_player(self, sid: Sid):
+        """
+        Mark a player as connected after they had previously left a game.
+        :param sid: socket-id of the user client
+        """
         self.connected_sids[sid] = True
         if self.object_manager:
             self.object_manager.reconnect_player(sid)
 
     async def send_objects_initial(self, *args, **kwargs):
+        """
+        Sends the initial state of this room to each of its users.
+        :param args: arguments to pass to each room's object_manager's send_objects_initial method. Usually args that
+        specify a socketio.emit command.
+        :param kwargs: keyword arguments to pass to each room's object_manager's send_objects_initial method. Usually
+        kwargs that specify a socketio.emit command.
+        :return:
+        """
         if self.object_manager:
             return await self.object_manager.send_objects_initial(self.sio, *args, **kwargs)
 
     async def send_updates(self, *args, **kwargs):
+        """
+        Send updates of each game state to each client.
+        :param args: arguments to pass to each room's object_manager's send_objects_initial method. Usually args that
+        specify a socketio.emit command.
+        :param kwargs: keyword arguments to pass to each room's object_manager's send_objects_initial method. Usually
+        kwargs that specify a socketio.emit command.
+        :return:
+        """
         if self.object_manager:
             return await self.object_manager.send_updates(self.sio, *args, **kwargs)
 
 
 class RoomManager:
+    """
+    Room Manager contains all of the individual rooms (each game world with connected clients), as well as logic
+    necessary to manage them.
+
+    The default room always exists, and where clients are connected before connecting to a specific game room.
+    """
+
     def __init__(self, socket_io_server: AsyncServer):
         self.rooms: Dict[RoomName, Room] = {'default': Room('default', socket_io_server)}
         self.connected_players: Dict[Sid, RoomName] = {}
@@ -176,11 +218,12 @@ class RoomManager:
         except KeyError:
             raise RoomDoesNotExistError(f'Room with name {name} does not exist')
 
-    async def connect_player(self, sid: Sid, socket, auth) -> None:
+    async def connect_player(self, sid: Sid, socket: Dict, auth=None) -> None:
         """
         Create a new player in the default room.
-        :param socket:
-        :param auth:
+        :param socket: socket information from the user client.
+        :param auth: Authentication information from the client. Currently unused, but a TypeError can result if the
+        client sends authentication information and the parameter is not present. TODO: Implement authentication
         :param sid: socket-id of the player to connect
         """
 
@@ -210,7 +253,7 @@ class RoomManager:
         Disconnects the player from their room.
         :param sid: socket-id of the player to disconnect
         """
-        self.get_room_from_sid(sid).disconect_player(sid)
+        self.get_room_from_sid(sid).disconnect_player(sid)
         self.sio.leave_room(sid, self.connected_players[sid])  # Leave the sio room
         # Go ahead and remove them from the connected players list to reduce memory usage
         # del self.connected_players[sid]
@@ -225,7 +268,7 @@ class RoomManager:
         :return:
         """
         # Disconnect player from current room
-        self.get_room_from_sid(sid).disconect_player(sid)
+        self.get_room_from_sid(sid).disconnect_player(sid)
 
         # Move the socket room for messaging
         self.sio.leave_room(sid, self.connected_players[sid])  # Leave the sio room
@@ -354,9 +397,25 @@ class RoomManager:
         self.get_object_manager_from_sid(sid).next_bullet(sid)
 
     async def send_objects_initial(self, *args, **kwargs):
+        """
+        Sends the initial state of each room to its users.
+        :param args: arguments to pass to each room's individual send_objects_initial method. Usually args that specify
+        a socketio.emit command.
+        :param kwargs: keyword arguments to pass to each room's individual send_objects_initial method. Usually args
+        that specify a socketio.emit command.
+        :return:
+        """
         return await asyncio.gather(*[room.send_objects_initial(*args, **kwargs) for room in self.rooms.values()])
 
     async def send_updates(self, *args, **kwargs):
+        """
+        Send updates of each game state to each client.
+        :param args: arguments to pass to each room's individual send_objects_initial method. Usually args that specify
+        a socketio.emit command.
+        :param kwargs: keyword arguments to pass to each room's individual send_objects_initial method. Usually args
+        that specify a socketio.emit command.
+        :return:
+        """
         return await asyncio.gather(*[room.send_updates(*args, **kwargs) for room in self.rooms.values()])
 
     async def move_loop(self) -> Future:
@@ -367,12 +426,17 @@ class RoomManager:
         return asyncio.gather(
             *[room.object_manager.move(self.sio) for room in self.rooms.values() if room.object_manager])
 
-    async def respawn(self, sid) -> None:
+    async def respawn(self, sid: Sid) -> None:
+        """
+        Send the initial data representing the world to a player with socket-id sid. This is a step of the
+        log-in process
+        :param sid: socket-id of the player who logged in.
+        """
         await self.send_objects_initial(room=sid)
         async with self.sio.session(sid) as session:
-            if session['currentPlayer'].id in self.connected_players:
-                # users.remove(session['currentPlayer'].id)
-                pass
+            # if session['currentPlayer'].id in self.connected_players:
+            #     # users.remove(session['currentPlayer'].id)
+            #     pass
             await self.sio.emit('welcome', session['currentPlayer'].to_json(), room=sid)
             print('[INFO] User ' + session['currentPlayer'].name + ' respawned!')
 
@@ -384,6 +448,9 @@ class RoomManager:
         return list(self.rooms.keys())
 
     async def game_loop(self):
+        """
+        Update the rooms (i.e. delete rooms as necessary).
+        """
         rooms_to_delete = [name for name, room in self.rooms.items()
                            if room.object_manager and room.object_manager.is_game_over
                            ]

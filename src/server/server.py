@@ -160,17 +160,6 @@ async def moveloop():
 
 
 async def gameloop():
-    # TODO: Redo the game loop using rooms
-    # global object_manager, users, sockets
-    # if len(object_manager.tanks) < 2:
-    #     print('Restarting game')
-    #
-    #     socket = copy(list(object_manager.sockets.keys()))
-    #
-    #     object_manager, users, sockets = restart_object_manager('')
-    #     # Disconnect everyone.
-    #     # await asyncio.gather(*[respawn(sid) for sid in socket])
-    #     await sio.emit('RIP')
     return await room_manager.game_loop()
 
 
