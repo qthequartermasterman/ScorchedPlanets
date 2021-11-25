@@ -33,7 +33,6 @@ class ObjectManager:
 
         self.level_name = ''
         self.game_started = False
-
         self.file_path = file_path
         if file_path:
             self.load_level_file(file_path)
@@ -168,7 +167,6 @@ class ObjectManager:
         Move all of the objects and perform collision detection and response
         :return:
         """
-
         for bullet in self.bullets:
             self.move_bullet(bullet)
         for sid_tank in self.tanks.items():
@@ -504,7 +502,9 @@ class ObjectManager:
                     # Todo get planet number (which is pieces[2], since self.planets is a dict
                     if bool(int(pieces[4])):
                         self.create_tank(float(pieces[1]), choice(list(self.planets.values())), sid=f'ai-{i}',
-                                         color=pieces[3], is_player=bool(int(pieces[4])))
+                                         color=pieces[3],
+                                         is_player=False  # is_player=bool(int(pieces[4]))
+                                         )
                     i += 1
 
     def next_bullet(self, sid):
@@ -545,7 +545,7 @@ class ObjectManager:
                     tank.desired_longitude = test_longitude
                     tank.desired_power = test_power
         else:
-            # Implement either gradient descend and/or particle swarm optimization
+            # Implement either gradient descent and/or particle swarm optimization
             """"""
             print()
 
@@ -629,6 +629,7 @@ class ObjectManager:
         :raise TankDoesNotError when no tank exists with the given sid
         """
         self.tanks[sid].is_player_character = False
+        self.tanks[sid].current_state = TankState.Wait
 
     def reconnect_player(self, sid: str):
         """
@@ -638,3 +639,4 @@ class ObjectManager:
         :raise TankDoesNotError when no tank exists with the given sid
         """
         self.tanks[sid].is_player_character = True
+        self.tanks[sid].current_state = TankState.Manual
