@@ -4,7 +4,7 @@ from asyncio import Future
 from dataclasses import dataclass, field
 from datetime import datetime
 from random import random, choice
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Callable, Any, Awaitable
 
 from urllib.parse import parse_qs
 
@@ -41,8 +41,8 @@ class PlayerNotConnectedError(KeyError):
     pass
 
 
-def pass_if_no_object_manager_error(function):
-    """Pass if there is a no object manager error in this function"""
+def pass_if_no_object_manager_error(function: Callable[[Any], Awaitable[None]]) -> Callable[[Any], Awaitable[None]]:
+    """Pass if there is a no object manager error in this function. This is used as a decorator"""
 
     @functools.wraps(function)
     async def wrapper(*args, **kwargs):
