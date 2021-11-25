@@ -17,6 +17,7 @@ sio.attach(app)
 room_manager = RoomManager(sio)
 room_manager.create_room(name='test_room1', level_path='./levels/Stage 1/I Was Here First!.txt')
 
+
 @sio.event
 async def connect(sid, socket, auth):
     return await room_manager.connect_player(sid, socket, auth)
@@ -133,6 +134,11 @@ async def next_bullet(sid):
     await room_manager.next_bullet(sid)
 
 
+@sio.event
+async def request_rooms(sid):
+    await sio.emit(room_manager.get_list_of_room_names(), room=sid)
+
+
 async def send_objects_initial(*args, **kwargs):
     return await room_manager.send_objects_initial(*args, **kwargs)
 
@@ -165,7 +171,7 @@ async def gameloop():
     #     # Disconnect everyone.
     #     # await asyncio.gather(*[respawn(sid) for sid in socket])
     #     await sio.emit('RIP')
-    pass
+    return await room_manager.game_loop()
 
 
 # Web server logic

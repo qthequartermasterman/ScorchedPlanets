@@ -32,6 +32,7 @@ class ObjectManager:
         self.dt = .001  # Time step for physics calculations
 
         self.level_name = ''
+        self.game_started = False
 
         self.file_path = file_path
         if file_path:
@@ -614,8 +615,26 @@ class ObjectManager:
     @property
     def is_game_over(self) -> bool:
         """
-        Calculates if the game is over by checking the number of living tanks.
+        Calculates if the game is over by checking if started and the number of living tanks.
         If there are less than 2 (i.e. 1 or 0 live tanks), then the game is over.
         :return: None
         """
-        return len([tank for tank in self.tanks.values() if not tank.dead]) < 2
+        return self.game_started and len([tank for tank in self.tanks.values() if not tank.dead]) < 2
+
+    def disconnect_player(self, sid: str) -> None:
+        """
+        Sets the tank with id equal to sid to be an AI tank. This is used when a player disconnected before the
+        round is over.
+        :param sid: Socket-id of the player that disconnected
+        :raise TankDoesNotError when no tank exists with the given sid
+        """
+        self.tanks[sid].is_player_character = False
+
+    def reconnect_player(self, sid: str):
+        """
+        Sets the tank with id equal to sid to be an player tank. This is used when a player disconnected before the
+        round is over, but later reconnected
+        :param sid: Socket-id of the player that reconnected
+        :raise TankDoesNotError when no tank exists with the given sid
+        """
+        self.tanks[sid].is_player_character = True

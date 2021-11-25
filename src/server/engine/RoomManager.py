@@ -1,9 +1,10 @@
 import asyncio
+import functools
 from asyncio import Future
 from dataclasses import dataclass, field
 from datetime import datetime
 from random import random, choice
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from urllib.parse import parse_qs
 
@@ -28,6 +29,30 @@ class RoomAlreadyExistsError(ValueError):
 class RoomDoesNotExistError(KeyError):
     """Room does not exist error."""
     pass
+
+
+class RoomHasNoObjectManager(AttributeError):
+    """Room does not have an Object Manager"""
+    pass
+
+
+class PlayerNotConnectedError(KeyError):
+    """Player is not connected"""
+    pass
+
+
+def pass_if_no_object_manager_error(function):
+    """Pass if there is a no object manager error in this function"""
+
+    @functools.wraps(function)
+    async def wrapper(*args, **kwargs):
+        try:
+            result = await function(*args, **kwargs)
+            return result
+        except RoomHasNoObjectManager:
+            return None
+
+    return wrapper
 
 
 @dataclass
@@ -76,11 +101,20 @@ class Room:
                                          'gameHeight': 1024,  # c.gameHeight
                                          },
                                         room=sid)
+                    if len(object_manager.tanks) > 1:
+                        object_manager.game_started = True
+                        print(f'Starting game in room {self.name}')
 
     def disconect_player(self, sid: Sid):
         self.connected_sids[sid] = False
         if self.object_manager:
-            self.object_manager.remove_player(sid)
+            # self.object_manager.remove_player(sid)
+            self.object_manager.disconnect_player(sid)
+
+    def reconnect_player(self, sid: Sid):
+        self.connected_sids[sid] = True
+        if self.object_manager:
+            self.object_manager.reconnect_player(sid)
 
     async def send_objects_initial(self, *args, **kwargs):
         if self.object_manager:
@@ -122,7 +156,7 @@ class RoomManager:
         except KeyError:
             raise RoomDoesNotExistError(f'Room with name {name} does not exist')
 
-    def delete_room(self, name: RoomName) -> None:
+    async def delete_room(self, name: RoomName) -> None:
         """
         Delete a previous created room.
         :param name: RoomName representing the name of the room to be created
@@ -130,7 +164,14 @@ class RoomManager:
         :return None
         """
         try:
-            # TODO: Disconnect all the tanks upon room deletion. Create a function in Object manager to do so?
+            # Move all the players to the default room
+            for player, connected in self.rooms[name].connected_sids.items():
+                if connected:
+                    await self.move_player(sid=player, new_room='default', player_info_dict={})
+
+            # Delete the Room
+            print(f'Deleting room: {name}')
+            await self.sio.emit('room_close', room=name)
             del self.rooms[name]
         except KeyError:
             raise RoomDoesNotExistError(f'Room with name {name} does not exist')
@@ -196,7 +237,6 @@ class RoomManager:
         self.connected_players[sid] = new_room
         await self.rooms[new_room].connect_player(sid=sid, player=player_info_dict)
 
-
     async def send_chat(self, sender_sid: Sid, msg: Dict):
         """
         Send a chat message to all of the players in the same room as sender_sid.
@@ -218,7 +258,15 @@ class RoomManager:
         :param sid: socket-id of the user
         :return:
         """
-        return self.rooms[self.connected_players[sid]]
+        player = None
+        try:
+            player = self.connected_players[sid]
+            return self.rooms[player]
+        except KeyError:
+            if not player:
+                raise PlayerNotConnectedError(f'Player {sid} is not connected.')
+            else:
+                raise
 
     def get_object_manager_from_sid(self, sid: Sid):
         """
@@ -226,8 +274,13 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: ObjectManager belonging to the room in which the sid is connected.
         """
-        return self.get_room_from_sid(sid).object_manager
+        room = self.get_room_from_sid(sid)
+        if room.object_manager:
+            return room.object_manager
+        else:
+            raise RoomHasNoObjectManager(f'Room containing player {sid} has no object manager.')
 
+    @pass_if_no_object_manager_error
     async def strafe_left(self, sid: Sid) -> None:
         """
         Sends a strafe left command to the ObjectManager containing the sid.
@@ -236,14 +289,17 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).strafe_left(sid)
 
+    @pass_if_no_object_manager_error
     async def strafe_right(self, sid: Sid) -> None:
         """
         Sends a strafe right command to the ObjectManager containing the sid.
         :param sid: socket-id of the user
         :return: None
         """
+
         self.get_object_manager_from_sid(sid).strafe_right(sid)
 
+    @pass_if_no_object_manager_error
     async def angle_left(self, sid: Sid) -> None:
         """
         Sends an angle left command to the ObjectManager containing the sid.
@@ -252,6 +308,7 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).angle_left(sid)
 
+    @pass_if_no_object_manager_error
     async def angle_right(self, sid: Sid) -> None:
         """
         Sends an angle right command to the ObjectManager containing the sid.
@@ -260,6 +317,7 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).angle_right(sid)
 
+    @pass_if_no_object_manager_error
     async def fire_gun(self, sid: Sid) -> None:
         """
         Sends a fire gun command to the ObjectManager containing the sid.
@@ -268,6 +326,7 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).fire_gun_sid(sid)
 
+    @pass_if_no_object_manager_error
     async def power_up(self, sid: Sid) -> None:
         """
         Sends a power up command to the ObjectManager containing the sid.
@@ -276,6 +335,7 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).power_up(sid)
 
+    @pass_if_no_object_manager_error
     async def power_down(self, sid: Sid) -> None:
         """
         Sends a power down command to the ObjectManager containing the sid.
@@ -284,6 +344,7 @@ class RoomManager:
         """
         self.get_object_manager_from_sid(sid).power_down(sid)
 
+    @pass_if_no_object_manager_error
     async def next_bullet(self, sid: Sid) -> None:
         """
         Sends a next bullet command to the ObjectManager containing the sid.
@@ -303,7 +364,8 @@ class RoomManager:
         Performs the movement step in each room.
         :return: A Future containing each coroutine of each move step in each room
         """
-        return asyncio.gather(*[room.object_manager.move(self.sio) for room in self.rooms.values() if room.object_manager])
+        return asyncio.gather(
+            *[room.object_manager.move(self.sio) for room in self.rooms.values() if room.object_manager])
 
     async def respawn(self, sid) -> None:
         await self.send_objects_initial(room=sid)
@@ -313,3 +375,18 @@ class RoomManager:
                 pass
             await self.sio.emit('welcome', session['currentPlayer'].to_json(), room=sid)
             print('[INFO] User ' + session['currentPlayer'].name + ' respawned!')
+
+    def get_list_of_room_names(self) -> List[RoomName]:
+        """
+        Get a list of all of the current room names.
+        :return:
+        """
+        return list(self.rooms.keys())
+
+    async def game_loop(self):
+        rooms_to_delete = [name for name, room in self.rooms.items()
+                           if room.object_manager and room.object_manager.is_game_over
+                           ]
+
+        for name in rooms_to_delete:
+            await self.delete_room(name)
