@@ -3,11 +3,11 @@
 //var Canvas = require('./canvas');
 //var global = require('./global');
 
-var playerNameInput = document.getElementById('playerNameInput');
-var socket;
-var reason;
+const playerNameInput = document.getElementById('playerNameInput');
+let socket;
+let reason;
 
-var debug = function(args) {
+const debug = function (args) {
     if (console && console.log) {
         console.log(args);
     }
@@ -41,14 +41,14 @@ function startGame(type) {
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
 function validNick() {
-    var regex = /^\w*$/;
+    const regex = /^\w*$/;
     debug('Regex Test', regex.exec(playerNameInput.value));
     return regex.exec(playerNameInput.value) !== null;
 }
 
 window.onload = function() {
 
-    var btn = document.getElementById('startButton'),
+    const btn = document.getElementById('startButton'),
         btnS = document.getElementById('spectateButton'),
         nickErrorText = document.querySelector('#startMenu .input-error');
 
@@ -67,12 +67,12 @@ window.onload = function() {
         }
     };
 
-    var settingsMenu = document.getElementById('settingsButton');
-    var settings = document.getElementById('settings');
-    var instructions = document.getElementById('instructions');
+    const settingsMenu = document.getElementById('settingsButton');
+    const settings = document.getElementById('settings');
+    const instructions = document.getElementById('instructions');
 
     settingsMenu.onclick = function () {
-        if (settings.style.maxHeight == '300px') {
+        if (settings.style.maxHeight === '300px') {
             settings.style.maxHeight = '0px';
         } else {
             settings.style.maxHeight = '300px';
@@ -80,7 +80,7 @@ window.onload = function() {
     };
 
     playerNameInput.addEventListener('keypress', function (e) {
-        var key = e.which || e.keyCode;
+        const key = e.which || e.keyCode;
 
         if (key === global.KEY_ENTER) {
             if (validNick()) {
@@ -95,11 +95,11 @@ window.onload = function() {
 
 // TODO: Break out into GameControls.
 
-var foodConfig = {
+const foodConfig = {
     border: 10,
 };
 
-var playerConfig = {
+let playerConfig = {
     border: 6,
     textColor: '#FFFFFF',
     textBorder: '#000000',
@@ -107,7 +107,7 @@ var playerConfig = {
     defaultSize: 30
 };
 
-var player = {
+let player = {
     id: -1,
     x: global.screenWidth / 2,
     y: global.screenHeight / 2,
@@ -117,36 +117,35 @@ var player = {
 };
 global.player = player;
 
-var foods = [];
-var viruses = [];
-var fireFood = [];
-var users = [];
+let foods = [];
+let viruses = [];
+let fireFood = [];
+let users = [];
 let explosions = [];
 let planets = []
 let bullets = [];
 let trajectory = [];
-var leaderboard = [];
-var target = {x: player.x, y: player.y};
+let target = {x: player.x, y: player.y};
 global.target = target;
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
 
-var visibleBorderSetting = document.getElementById('visBord');
+const visibleBorderSetting = document.getElementById('visBord');
 visibleBorderSetting.onchange = settings.toggleBorder;
 
 // var showMassSetting = document.getElementById('showMass');
 // showMassSetting.onchange = settings.toggleMass;
 
-var continuitySetting = document.getElementById('continuity');
+const continuitySetting = document.getElementById('continuity');
 continuitySetting.onchange = settings.toggleContinuity;
 
 // var roundFoodSetting = document.getElementById('roundFood');
 // roundFoodSetting.onchange = settings.toggleRoundFood;
 
-var c = window.canvas.cv;
-var graph = c.getContext('2d');
-var health_ctx = document.getElementById('cvs-healthbar').getContext('2d');
+const c = window.canvas.cv;
+const graph = c.getContext('2d');
+const health_ctx = document.getElementById('cvs-healthbar').getContext('2d');
 
 $( "#feed" ).click(function() {
     socket.emit('1');
@@ -195,7 +194,7 @@ sprites = {
 function setupSocket(socket) {
     // Handle ping.
     socket.on('pongcheck', function () {
-        var latency = Date.now() - global.startPingTime;
+        let latency = Date.now() - global.startPingTime;
         debug('Latency: ' + latency + 'ms');
         window.chat.addSystemLine('Ping: ' + latency + 'ms');
     });
@@ -333,7 +332,7 @@ function setupSocket(socket) {
     });
 
     socket.on('update-explosions', function(explosionsList){
-        let explosions = explosionsList
+        explosions = explosionsList
     })
     // Handle movement.
     socket.on('-serverTellPlayerMove', function (data) {
@@ -397,9 +396,9 @@ function setupSocket(socket) {
 }
 
 function drawCircle(centerX, centerY, radius, sides) {
-    var theta = 0;
-    var x = 0;
-    var y = 0;
+    let theta = 0;
+    let x = 0;
+    let y = 0;
 
     graph.beginPath();
 
@@ -609,12 +608,12 @@ function drawgrid() {
      graph.globalAlpha = 0.15;
      graph.beginPath();
 
-    for (var x = global.xoffset - player.x; x < global.screenWidth; x += global.screenHeight / 18) {
+    for (let x = global.xoffset - player.x; x < global.screenWidth; x += global.screenHeight / 18) {
         graph.moveTo(x, 0);
         graph.lineTo(x, global.screenHeight);
     }
 
-    for (var y = global.yoffset - player.y ; y < global.screenHeight; y += global.screenHeight / 18) {
+    for (let y = global.yoffset - player.y ; y < global.screenHeight; y += global.screenHeight / 18) {
         graph.moveTo(0, y);
         graph.lineTo(global.screenWidth, y);
     }
