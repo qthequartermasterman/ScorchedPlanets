@@ -81,6 +81,7 @@ class Room:
         """
         self.connected_sids[sid] = True
         if self.object_manager:
+            await self.send_objects_initial(room=sid)
             object_manager, users, sockets = self.object_manager, self.object_manager.users, self.object_manager.sockets
             player = PlayerInfo.from_dict(player, object_manager.tanks)
             print(f'[INFO] Player {player.name}connecting to room {self.name}!')
@@ -145,6 +146,8 @@ class Room:
         :return:
         """
         if self.object_manager:
+            if 'room' not in kwargs:
+                kwargs['room'] = self.name
             return await self.object_manager.send_objects_initial(self.sio, *args, **kwargs)
 
     async def send_updates(self, *args, **kwargs):
@@ -157,6 +160,8 @@ class Room:
         :return:
         """
         if self.object_manager:
+            if 'room' not in kwargs:
+                kwargs['room'] = self.name
             return await self.object_manager.send_updates(self.sio, *args, **kwargs)
 
 
@@ -183,6 +188,7 @@ class RoomManager:
         """
         if name not in self.rooms:
             self.rooms[name] = Room(name, self.sio, ObjectManager(file_path=level_path))
+
         else:
             raise RoomAlreadyExistsError(f'Room with name {name} already exists.')
 
@@ -214,7 +220,9 @@ class RoomManager:
             # Delete the Room
             print(f'Deleting room: {name}')
             await self.sio.emit('room_close', room=name)
+            await self.sio.close_room(name)
             del self.rooms[name]
+            await self.send_room_list()
         except KeyError:
             raise RoomDoesNotExistError(f'Room with name {name} does not exist')
 
@@ -405,7 +413,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_objects_initial(*args, **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_objects_initial(*args,  **kwargs) for room in self.rooms.values()])
 
     async def send_updates(self, *args, **kwargs):
         """
@@ -416,7 +424,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_updates(*args, **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_updates(*args,  **kwargs) for room in self.rooms.values()])
 
     async def move_loop(self) -> Future:
         """
@@ -445,7 +453,7 @@ class RoomManager:
         Get a list of all of the current room names.
         :return:
         """
-        return list(self.rooms.keys())
+        return list(key for key in self.rooms.keys() if key != 'default')
 
     async def game_loop(self):
         """
@@ -457,3 +465,9 @@ class RoomManager:
 
         for name in rooms_to_delete:
             await self.delete_room(name)
+
+        # for player, room in self.connected_players.items():
+        #     print(player, room, self.sio.rooms(player))
+
+    async def send_room_list(self, room=None):
+        await self.sio.emit('room_list', self.get_list_of_room_names(), room=room)

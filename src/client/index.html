@@ -30,8 +30,8 @@
     <div id="startMenuWrapper">
         <div id="startMenu">
             <p>Scorched Planets</p>
-            <input type="text" tabindex="0" autofocus placeholder="Enter your name here" id="playerNameInput" maxlength="25" />
-            <b class="input-error">Nick must be alphanumeric characters only!</b>
+            <input class="startMenuTextInput" type="text" tabindex="0" autofocus placeholder="Enter your name here" id="playerNameInput" maxlength="25" />
+            <b class="input-error">Nickname must be alphanumeric characters only!</b>
             <br />
             <div id="rooms">
                 <h3>Rooms</h3> Select a room:
@@ -39,10 +39,11 @@
 
                 </ul>
             </div>
-            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton" disabled>Play</button></a>
-            <button id="spectateButton">Spectate</button>
+            <a onclick="document.getElementById('spawn_cell').play();"><button class="startMenuButton" id="startButton" disabled>Play</button></a>
 
-            <button id="settingsButton">Settings</button>
+            <input class="startMenuTextInput" type="text" tabindex="0" autofocus placeholder="Enter the name of your new room here" id="roomNameInput" maxlength="25" />
+            <button class="startMenuButton" id="createRoomButton">Create New Room</button>
+            <button class="startMenuButton" id="settingsButton">Settings</button>
             <br />
 
             <div id="settings">

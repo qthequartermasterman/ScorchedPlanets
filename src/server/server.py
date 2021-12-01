@@ -5,7 +5,7 @@ import socketio
 from aiohttp import web
 
 from engine.Config import ConfigData
-from engine.RoomManager import RoomManager
+from engine.RoomManager import RoomManager, RoomAlreadyExistsError
 from engine.vector import Vector
 
 # Set up Web Server
@@ -134,7 +134,18 @@ async def next_bullet(sid):
 
 @sio.event
 async def request_rooms(sid):
-    await sio.emit('room_list', room_manager.get_list_of_room_names(), room=sid)
+    await room_manager.send_room_list(sid)
+
+
+@sio.event
+async def create_room(sid, data):
+    try:
+        print(f'Creating room with name={data["name"]} for user {sid}')
+        room_manager.create_room(data['name'])
+        await room_manager.send_room_list()
+    except RoomAlreadyExistsError:
+        print(f'Room with name={data["name"]} already exists')
+        await sio.emit('room_already_exists_error', data, room=sid)
 
 
 async def send_objects_initial(*args, **kwargs):

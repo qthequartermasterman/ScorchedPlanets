@@ -53,13 +53,9 @@ window.onload = function() {
         setupSocket(socket);
     }
 
-    const btn = document.getElementById('startButton'),
-        btnS = document.getElementById('spectateButton'),
-        nickErrorText = document.querySelector('#startMenu .input-error');
-
-    btnS.onclick = function () {
-        startGame('spectate');
-    };
+    const btn = document.getElementById('startButton');
+    const nickErrorText = document.querySelector('#startMenu .input-error');
+    const createRoomButton = document.getElementById('createRoomButton');
 
     btn.onclick = function () {
 
@@ -71,6 +67,11 @@ window.onload = function() {
             nickErrorText.style.opacity = 1;
         }
     };
+
+    // TODO: when the client receives a 'room_already_exists_error' event from socket-io, inform the user somehow.
+    createRoomButton.addEventListener('click', function (){
+        socket.emit('create_room', {name:document.getElementById('roomNameInput').value});
+    });
 
     const settingsMenu = document.getElementById('settingsButton');
     const settings = document.getElementById('settings');
@@ -246,7 +247,15 @@ function setupSocket(socket) {
         console.log(list);
         room_names = list;
         const room_list_ul = document.getElementById('room-list')
+        const checked_value_element = $('input[name=room_list_input]:checked')[0]
+        room_list_ul.innerHTML = '';
         room_names.forEach((element) => add_rooms_to_list(element, room_list_ul))
+        if (checked_value_element){
+            const previously_selected = $(`input[name=room_list_input][value=${checked_value_element.value}]`)[0]
+            if (previously_selected){
+                previously_selected.checked = true;
+            }
+        }
     });
 
     // Handle connection.
@@ -299,6 +308,8 @@ function setupSocket(socket) {
 
     socket.on('initial', function(data){
         console.log('initial', data)
+        planets = [];
+        users=[];
         if (data.sprite === 'SpriteType.PLANET_SPRITE'){
             planets.push(data)
         } else if (data.sprite === 'SpriteType.GREY1_SPRITE'){
@@ -317,9 +328,11 @@ function setupSocket(socket) {
                     planet = planets[j];
                 }
             }
-            for (let i = 0; i < data.update.length; i++){
-                let index = data.update[i][0];
-                planet.altitudes[index] = data.update[i][1];
+            if (planet) {
+                for (let i = 0; i < data.update.length; i++) {
+                    let index = data.update[i][0];
+                    planet.altitudes[index] = data.update[i][1];
+                }
             }
         }
 

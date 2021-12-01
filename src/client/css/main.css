@@ -142,7 +142,8 @@ div {
     font-weight: bold;
 }
 
-#playerNameInput {
+/*#playerNameInput {*/
+.startMenuTextInput{
     width: 100%;
     text-align: center;
     padding: 10px;
@@ -156,12 +157,14 @@ div {
     outline: none;
 }
 
-#playerNameInput:focus, #playerNameInput.focus {
+/*#playerNameInput:focus, #playerNameInput.focus {*/
+.startMenuTextInput:focus, .startMenuTextInput.focus {
     border: solid 1px #CCCCCC;
     box-shadow: 0 0 3px 1px #DDDDDD;
 }
 
-#startButton, #spectateButton, #roomsButton, #settingsButton {
+/*#startButton, #spectateButton, #roomsButton, #settingsButton {*/
+.startMenuButton{
     position: relative;
     width: 100%;
     height: 40px;
@@ -182,10 +185,11 @@ div {
     margin: 10px auto;
 }
 
-#spectateButton:active, #spectateButton:hover,
-#startButton:active, #startButton:hover,
-#roomsButton:active, #roomsButton:hover,
-#settingsButton:active, #settingsButton:hover{
+/*#spectateButton:active, #spectateButton:hover,*/
+/*#startButton:active, #startButton:hover,*/
+/*#roomsButton:active, #roomsButton:hover,*/
+/*#settingsButton:active, #settingsButton:hover{*/
+.startMenuButton:active, .startMenuButton:hover {
     top: 1px;
     background: #55D88B;
     outline: none;

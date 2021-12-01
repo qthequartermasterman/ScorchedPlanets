@@ -33,9 +33,9 @@ class ObjectManager:
 
         self.level_name = ''
         self.game_started = False
-        self.file_path = file_path
-        if file_path:
-            self.load_level_file(file_path)
+        self.file_path = file_path or './levels/Stage 1/I Was Here First!.txt'
+        if self.file_path:
+            self.load_level_file(self.file_path)
 
     def create_planet(self, position: Vector, mass: float = 0, radius: int = 500) -> PlanetObject:
         """
@@ -439,7 +439,6 @@ class ObjectManager:
         new_bullet.bounces = bullet.bounces + 1
 
     async def cull_dead_objects(self, server: AsyncServer):
-        await self.send_updates(server)
         dead_bullets = [bullet for bullet in self.bullets if bullet.dead]
         for bullet in dead_bullets:
             self.bullets.remove(bullet)
@@ -628,8 +627,11 @@ class ObjectManager:
         :param sid: Socket-id of the player that disconnected
         :raise TankDoesNotError when no tank exists with the given sid
         """
-        self.tanks[sid].is_player_character = False
-        self.tanks[sid].current_state = TankState.Wait
+        try:
+            self.tanks[sid].is_player_character = False
+            self.tanks[sid].current_state = TankState.Wait
+        except KeyError:
+            pass
 
     def reconnect_player(self, sid: str):
         """
