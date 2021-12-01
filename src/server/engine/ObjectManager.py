@@ -32,10 +32,10 @@ class ObjectManager:
         self.dt = .001  # Time step for physics calculations
 
         self.level_name = ''
-
-        self.file_path = file_path
-        if file_path:
-            self.load_level_file(file_path)
+        self.game_started = False
+        self.file_path = file_path or './levels/Stage 1/I Was Here First!.txt'
+        if self.file_path:
+            self.load_level_file(self.file_path)
 
     def create_planet(self, position: Vector, mass: float = 0, radius: int = 500) -> PlanetObject:
         """
@@ -167,7 +167,6 @@ class ObjectManager:
         Move all of the objects and perform collision detection and response
         :return:
         """
-
         for bullet in self.bullets:
             self.move_bullet(bullet)
         for sid_tank in self.tanks.items():
@@ -375,9 +374,7 @@ class ObjectManager:
                 tank.take_damage(bullet.damage)
 
         for bullet, planet in product(self.bullets, list(self.planets.values())):
-            print('Checking planet-bullet intersection')
             if planet.intersects(bullet.collision_sphere):
-                print('Detected planet-bullet intersection')
                 self._explode_bullet(bullet, planet)
 
     def _explode_bullet(self, bullet: BulletObject, planet: PlanetObject = None, tank: TankObject = None):
@@ -442,7 +439,6 @@ class ObjectManager:
         new_bullet.bounces = bullet.bounces + 1
 
     async def cull_dead_objects(self, server: AsyncServer):
-        await self.send_updates(server)
         dead_bullets = [bullet for bullet in self.bullets if bullet.dead]
         for bullet in dead_bullets:
             self.bullets.remove(bullet)
@@ -505,7 +501,9 @@ class ObjectManager:
                     # Todo get planet number (which is pieces[2], since self.planets is a dict
                     if bool(int(pieces[4])):
                         self.create_tank(float(pieces[1]), choice(list(self.planets.values())), sid=f'ai-{i}',
-                                         color=pieces[3], is_player=bool(int(pieces[4])))
+                                         color=pieces[3],
+                                         is_player=False  # is_player=bool(int(pieces[4]))
+                                         )
                     i += 1
 
     def next_bullet(self, sid):
@@ -546,7 +544,7 @@ class ObjectManager:
                     tank.desired_longitude = test_longitude
                     tank.desired_power = test_power
         else:
-            # Implement either gradient descend and/or particle swarm optimization
+            # Implement either gradient descent and/or particle swarm optimization
             """"""
             print()
 
@@ -612,3 +610,35 @@ class ObjectManager:
                 await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions}, room=sid, *args, **kwargs)
             except KeyError:
                 pass
+
+    @property
+    def is_game_over(self) -> bool:
+        """
+        Calculates if the game is over by checking if started and the number of living tanks.
+        If there are less than 2 (i.e. 1 or 0 live tanks), then the game is over.
+        :return: None
+        """
+        return self.game_started and len([tank for tank in self.tanks.values() if not tank.dead]) < 2
+
+    def disconnect_player(self, sid: str) -> None:
+        """
+        Sets the tank with id equal to sid to be an AI tank. This is used when a player disconnected before the
+        round is over.
+        :param sid: Socket-id of the player that disconnected
+        :raise TankDoesNotError when no tank exists with the given sid
+        """
+        try:
+            self.tanks[sid].is_player_character = False
+            self.tanks[sid].current_state = TankState.Wait
+        except KeyError:
+            pass
+
+    def reconnect_player(self, sid: str):
+        """
+        Sets the tank with id equal to sid to be an player tank. This is used when a player disconnected before the
+        round is over, but later reconnected
+        :param sid: Socket-id of the player that reconnected
+        :raise TankDoesNotError when no tank exists with the given sid
+        """
+        self.tanks[sid].is_player_character = True
+        self.tanks[sid].current_state = TankState.Manual

@@ -9,10 +9,10 @@ from .vector import Vector, Sphere
 
 class Object:
     def __init__(self, position: Vector, sprite_type: SpriteType = None):
-        '''
+        """
 
         :param position: Vector representing position
-        '''
+        """
 
         self.id = id(self)
 

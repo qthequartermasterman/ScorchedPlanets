@@ -15,6 +15,7 @@ from .vector import Vector, UnitVector
 
 
 class TankState(Enum):
+    """All the possible states that a tank could be in."""
     Manual = auto()
     Move = auto()
     MoveLeft = auto()
@@ -34,11 +35,13 @@ class TankState(Enum):
 
 
 class TankAnimationState(Enum):
+    """All of the animation states a tank could be in."""
     Normal = auto()
     Falling = auto()
 
 
 class TankObject(Object):
+    """All of the data and functionality representing a tank, whether is be a player or an AI."""
     def __init__(self, longitude: float, planet: PlanetObject, color: str = None, angle: float = 0):
         super().__init__(Vector(0, 0), sprite_type=SpriteType.GREY1_SPRITE)
         self.home_planet = planet
@@ -252,99 +255,128 @@ class TankObject(Object):
         # print(f' Tank { self.id} is thinking', self.current_state)
         # Switch over the current state
         if self.current_state == TankState.Wait:
-            # Make sure not dead
-            if self.dead:
-                self.current_state = TankState.Dead
-            # Make sure not player
-            if self.is_player_character:
-                current_state = TankState.Manual
-            # Check if it's my turn. If so, switch to think. If not, do nothing.
-            if not turns_enabled and not self.is_player_character:
-                self.current_state = TankState.Think
+            self._tank_state_wait()
 
         # Think == Make a plan for this turn
         elif self.current_state == TankState.Think:
-            # We have to wait for the Object Manager to aim for us.
-            # self.adjust_aim()
-            # self.current_state = TankState.Move
-            pass
+            self._tank_state_think()
 
         # Move the tank left or right
         elif self.current_state == TankState.Move:
-            # How far apart are the angles in positive degrees?
-            diff_angle: float = (self.longitude - self.desired_longitude) % 360
-            # If the difference is less than 180, it's faster to go left. Buffer of 2 degrees longitude to prevent spazzing.
-            if 180 > diff_angle > 2:
-                self.strafe_right = True
-            # If the difference is greater than 180, it's faster to go right. Buffer of 5 degrees longitude to prevent spazzing.
-            elif 180 < diff_angle < 2:
-                self.strafe_left = True
-            else:
-                self.current_state = TankState.Aim
+            self._tank_state_move()
 
         # Aim the turret
         elif self.current_state == TankState.Aim:
-            self.desired_angle = self.desired_angle % 360
-            # How far apart are the angles in positive degrees?
-            diff_angle: float = (self.angle - self.desired_angle) % 360
-            # The difference being greater than 1 gives us some buffer. It's unlikely that we'll ever get angle and
-            # desired_angle to be exactly correct with how the steptimer works.
-            if 180 < diff_angle < 1:
-                self.rotation_speed = 1
-            elif 180 > diff_angle > 1:
-                self.rotation_speed = -1
-            else:
-                self.current_state = TankState.Power
-                self.rotation_speed = 0
+            self._tank_state_aim()
 
         # Get to the correct power
         elif self.current_state == TankState.Power:
-            if self.desired_power - self.power > 50:
-                self.power_speed = 50
-            elif self.desired_power - self.power < -50:
-                self.power_speed = -50
-            else:
-                self.current_state = TankState.Fire
-                self.power_speed = 0
+            self._tank_state_power()
 
         # Fire!
         elif self.current_state == TankState.Fire:
-            if datetime.datetime.now().timestamp() > self.gun_timer + 3:
-                # Choose a random bullet that we have access to.
-                self.selected_bullet = randint(0, self.bullet_type_count)
-
-                self.current_state = TankState.FireWait
-                # self.current_state = TankState.PostFire
+            self._tank_state_fire()
 
         # FireWait is when we're waiting on the ObjectManager to fire the gun for us
         elif self.current_state == TankState.FireWait:
-            pass
-
+            self._tank_state_firewait()
 
         # Post fire states
         elif self.current_state == TankState.PostFire:
-            if not turns_enabled:
-                if self.is_player_character:
-                    self.current_state = TankState.Manual
-                else:
-                    self.current_state = TankState.Wait
-            else:
-                # TODO: Implement turns
-                pass
+            self._tank_state_postfire()
 
         # Dead
         elif self.current_state == TankState.Dead:
-            if self.dead and turns_enabled:
-                # TODO: Implement turns
-                # m_pPlayer = m_pTurnManager->NextTurn();
-                pass
+            self._tank_state_dead()
 
         # If the current state is manual, do nothing
         elif self.current_state == TankState.Manual:
-            pass
+            self._tank_state_manual()
 
         # If unknown case, switch to waiting
         else:
             self.current_state = TankState.Wait
 
+    def _tank_state_manual(self):
+        pass
 
+    def _tank_state_dead(self):
+        if self.dead and turns_enabled:
+            # TODO: Implement turns
+            # m_pPlayer = m_pTurnManager->NextTurn();
+            pass
+
+    def _tank_state_postfire(self):
+        if not turns_enabled:
+            if self.is_player_character:
+                self.current_state = TankState.Manual
+            else:
+                self.current_state = TankState.Wait
+        else:
+            # TODO: Implement turns
+            pass
+
+    def _tank_state_firewait(self):
+        pass
+
+    def _tank_state_fire(self):
+        if datetime.datetime.now().timestamp() > self.gun_timer + 3:
+            # Choose a random bullet that we have access to.
+            self.selected_bullet = randint(0, self.bullet_type_count)
+
+            self.current_state = TankState.FireWait
+            # self.current_state = TankState.PostFire
+
+    def _tank_state_power(self):
+        if self.desired_power - self.power > 50:
+            self.power_speed = 50
+        elif self.desired_power - self.power < -50:
+            self.power_speed = -50
+        else:
+            self.current_state = TankState.Fire
+            self.power_speed = 0
+
+    def _tank_state_aim(self):
+        self.desired_angle = self.desired_angle % 360
+        # How far apart are the angles in positive degrees?
+        diff_angle: float = (self.angle - self.desired_angle) % 360
+        # The difference being greater than 1 gives us some buffer. It's unlikely that we'll ever get angle and
+        # desired_angle to be exactly correct with how the steptimer works.
+        if 180 < diff_angle < 1:
+            self.rotation_speed = 1
+        elif 180 > diff_angle > 1:
+            self.rotation_speed = -1
+        else:
+            self.current_state = TankState.Power
+            self.rotation_speed = 0
+
+    def _tank_state_move(self):
+        # How far apart are the angles in positive degrees?
+        diff_angle: float = (self.longitude - self.desired_longitude) % 360
+        # If the difference is less than 180, it's faster to go left.
+        # Buffer of 2 degrees longitude to prevent spazzing.
+        if 180 > diff_angle > 2:
+            self.strafe_right = True
+        # If the difference is greater than 180, it's faster to go right.
+        # Buffer of 5 degrees longitude to prevent spazzing.
+        elif 180 < diff_angle < 2:
+            self.strafe_left = True
+        else:
+            self.current_state = TankState.Aim
+
+    def _tank_state_think(self):
+        # We have to wait for the Object Manager to aim for us.
+        # self.adjust_aim()
+        # self.current_state = TankState.Move
+        pass
+
+    def _tank_state_wait(self):
+        # Make sure not dead
+        if self.dead:
+            self.current_state = TankState.Dead
+        # Make sure not player
+        if self.is_player_character:
+            self.current_state = TankState.Manual
+        # Check if it's my turn. If so, switch to think. If not, do nothing.
+        if not turns_enabled and not self.is_player_character:
+            self.current_state = TankState.Think
