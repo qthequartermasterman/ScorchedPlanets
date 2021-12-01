@@ -48,6 +48,11 @@ function validNick() {
 
 window.onload = function() {
 
+    if (!socket) {
+        socket = io({query:"type=player"});
+        setupSocket(socket);
+    }
+
     const btn = document.getElementById('startButton'),
         btnS = document.getElementById('spectateButton'),
         nickErrorText = document.querySelector('#startMenu .input-error');
@@ -126,6 +131,7 @@ let planets = []
 let bullets = [];
 let trajectory = [];
 let target = {x: player.x, y: player.y};
+let room_names=[];
 global.target = target;
 
 window.canvas = new Canvas();
@@ -186,12 +192,38 @@ sprites = {
     MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png')
 }
 
+//Add html elements to the given element that
+function add_rooms_to_list(room_name, element){
+    const room_input = document.createElement('input');
+    const label = document.createElement('label');
+    label.htmlFor=room_name;
+    label.innerHTML=room_name;
+    room_input.type = 'radio';
+    room_input.id=room_input.value=room_name;
+    room_input.name='room_list_input';
+    room_input.addEventListener('change', update_play_button);
+    element.appendChild(room_input);
+    element.appendChild(label);
+    element.appendChild(document.createElement('br'));
+}
 
 
+//Check if any room is selected
+function check_if_room_selected(){
+    return ($('input[name=room_list_input]:checked').length > 0)
+}
+
+function update_play_button(){
+    if (check_if_room_selected()){
+        document.getElementById('startButton').disabled = false;
+    }
+}
 
 
 // socket stuff.
 function setupSocket(socket) {
+    socket.emit('request_rooms');
+
     // Handle ping.
     socket.on('pongcheck', function () {
         let latency = Date.now() - global.startPingTime;
@@ -210,6 +242,13 @@ function setupSocket(socket) {
         global.disconnected = true;
     });
 
+    socket.on('room_list', (list)=>{
+        console.log(list);
+        room_names = list;
+        const room_list_ul = document.getElementById('room-list')
+        room_names.forEach((element) => add_rooms_to_list(element, room_list_ul))
+    });
+
     // Handle connection.
     socket.on('welcome', function (playerSettings) {
         player = playerSettings;
@@ -217,6 +256,7 @@ function setupSocket(socket) {
         player.screenWidth = global.screenWidth;
         player.screenHeight = global.screenHeight;
         player.target = window.canvas.target;
+        player.new_room = $('input[name=room_list_input]:checked')[0].value; //Connect to the room with the correct name
         global.player = player;
         window.chat.player = player;
         socket.emit('gotit', player);

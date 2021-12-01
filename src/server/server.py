@@ -32,8 +32,6 @@ async def disconnect(sid):
 
 @sio.event
 async def gotit(sid, player):
-    # TODO: Select rooms from the client side.
-    player['new_room'] = 'test_room1'
     await room_manager.move_player(sid=sid, new_room=player['new_room'], player_info_dict=player)
 
 
@@ -136,7 +134,7 @@ async def next_bullet(sid):
 
 @sio.event
 async def request_rooms(sid):
-    await sio.emit(room_manager.get_list_of_room_names(), room=sid)
+    await sio.emit('room_list', room_manager.get_list_of_room_names(), room=sid)
 
 
 async def send_objects_initial(*args, **kwargs):

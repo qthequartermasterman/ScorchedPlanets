@@ -193,6 +193,14 @@ div {
     box-shadow: none;
 }
 
+#startButton:disabled {
+    background-color:#cccccc;
+    border-bottom: 0;
+    outline: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
 #settings, #startMenuWrapper {
     -webkit-transition: max-height 1s;
     -moz-transition: max-height 1s;

@@ -33,13 +33,15 @@
             <input type="text" tabindex="0" autofocus placeholder="Enter your name here" id="playerNameInput" maxlength="25" />
             <b class="input-error">Nick must be alphanumeric characters only!</b>
             <br />
-            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton">Play</button></a>
-            <button id="spectateButton">Spectate</button>
-            <button id="roomsButton">Rooms</button>
-            <div id="room-list">
-                <h3>Rooms</h3>
+            <div id="rooms">
+                <h3>Rooms</h3> Select a room:
+                <ul id="room-list">
 
+                </ul>
             </div>
+            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton" disabled>Play</button></a>
+            <button id="spectateButton">Spectate</button>
+
             <button id="settingsButton">Settings</button>
             <br />
 
