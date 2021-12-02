@@ -216,7 +216,27 @@ function playSound(soundtype){
     //If soundtype is empty, we shouldn't play a sound.
     if (soundtype) {
         //Ignore 'SoundType.' in the front of the name.
-        sounds[soundtype.substring(10)].play()
+        sounds[soundtype.substring(10)].play();
+    }
+}
+
+function loopSound(soundtype){
+    //If soundtype is empty, we shouldn't play a sound.
+    if (soundtype) {
+        //Ignore 'SoundType.' in the front of the name.
+        const sound = sounds[soundtype.substring(10)];
+        sound.loop = true;
+        sound.play();
+    }
+}
+
+function stopSound(sound){
+    //If soundtype is empty, we shouldn't play a sound.
+    if (soundtype) {
+        //Ignore 'SoundType.' in the front of the name.
+        const sound = sounds[soundtype.substring(10)];
+        sound.loop = false;
+        sound.pause();
     }
 }
 
