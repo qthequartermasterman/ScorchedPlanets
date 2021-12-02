@@ -150,12 +150,9 @@ class Object:
 
     @property
     def sound_type_to_play(self) -> SoundType:
-        sound = self.sound_type_to_emit if self.need_to_emit_sound else ''
-        if sound:
-            print(f'{id(self), type(self)} is emitting sound {sound}')
-        return sound
+        return self.sound_type_to_emit if self.need_to_emit_sound else ''
 
     def play_sound(self, sound_type: SoundType) -> None:
-        print(f'{id(self), type(self)} is playing sound {sound_type}')
+        # print(f'{id(self), type(self)} is playing sound {sound_type}')
         self._need_to_emit_sound = True
         self.sound_type_to_emit = sound_type
