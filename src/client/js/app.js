@@ -193,6 +193,33 @@ sprites = {
     MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png')
 }
 
+//grab sounds from the html
+function load_sound(id){
+    return document.getElementById(id);
+}
+
+sounds = {
+    GUN_SOUND: load_sound('SoundType.GUN_SOUND'),
+    RICOCHET_SOUND: load_sound('SoundType.RICOCHET_SOUND'),
+    OW_SOUND: load_sound('SoundType.OW_SOUND'),
+    CLANG_SOUND: load_sound('SoundType.CLANG_SOUND'),
+    EXPLOSION1_SOUND: load_sound('SoundType.EXPLOSION1_SOUND'),
+    EXPLOSION3_SOUND: load_sound('SoundType.EXPLOSION3_SOUND'),
+    EXPLOSION7_SOUND: load_sound('SoundType.EXPLOSION7_SOUND'),
+    SHOOT_SOUND: load_sound('SoundType.SHOOT_SOUND'),
+    SHOOT2_SOUND: load_sound('SoundType.SHOOT2_SOUND'),
+    SCIFI_MUSIC: load_sound('SoundType.SCIFI_MUSIC'),
+    NEWDAWN_MUSIC: load_sound('SoundType.NEWDAWN_MUSIC')
+}
+
+function playSound(soundtype){
+    //If soundtype is empty, we shouldn't play a sound.
+    if (soundtype) {
+        //Ignore 'SoundType.' in the front of the name.
+        sounds[soundtype.substring(10)].play()
+    }
+}
+
 //Add html elements to the given element that
 function add_rooms_to_list(room_name, element){
     const room_input = document.createElement('input');
@@ -487,9 +514,13 @@ function drawExplosion(explosion){
 
     let spriteName = explosion.sprite.substring(11);
 
-    drawCircle(centerX, centerY, explosion.radius, 16)
+    drawCircle(centerX, centerY, explosion.radius, 16);
 
-    rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0)
+    rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0);
+
+    // Play the sound
+    playSound(explosion.sound)
+
 }
 
 function drawTrajectory(trajectory){
@@ -597,6 +628,9 @@ function drawTank(tank){
     // graph.lineTo(centerX - norm_diff * difference_x, centerY - norm_diff * difference_y)
     // graph.stroke();
 
+    //Play Sound
+    playSound(tank.sound);
+
 
 }
 
@@ -619,9 +653,9 @@ function drawPlanet(planet){
     graph.fillStyle = gradient
     graph.lineWidth = foodConfig.border;
 
-    var theta = 0;
-    var x = 0;
-    var y = 0;
+    let theta = 0;
+    let x = 0;
+    let y = 0;
 
     graph.beginPath();
 
@@ -651,7 +685,8 @@ function drawBullet(bullet){
     let sprite_name = bullet.sprite.substring(11); //The string passed includes 'SpriteType.' before the name
     // console.log(sprite_name)
     // console.log(sprites[sprite_name], bullet.roll, centerX, centerY)
-    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, centerX, centerY,0,0)
+    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, centerX, centerY,0,0);
+    playSound(bullet.sound);
 }
 
 
