@@ -12,4 +12,4 @@ class SoundType(Enum):
     SHOOT_SOUND = auto()
     SHOOT2_SOUND = auto()
     SCIFI_MUSIC = auto()
-    NEWDAWN_MUSI = auto()
+    NEWDAWN_MUSIC = auto()

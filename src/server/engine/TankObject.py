@@ -129,7 +129,7 @@ class TankObject(Object):
         if self.health_points <= 0:
             self.current_state = TankState.Dead
             self.kill()
-        # TODO: Play audio
+        self.play_sound(self.damage_sound)
         return self.health_points
 
     def teleport(self, pos: Vector, new_planet: PlanetObject):
@@ -243,7 +243,8 @@ class TankObject(Object):
                 'health': self.health_points,
                 'selected_bullet': self.selected_bullet,
                 'bullet_counts': self.bullet_counts,
-                'bullet_sprites': [str(bullet_type) for bullet_type in self.bullet_types]}
+                'bullet_sprites': [str(bullet_type) for bullet_type in self.bullet_types],
+                'sound': str(self.sound_type_to_play)}
 
     def think(self):
         """

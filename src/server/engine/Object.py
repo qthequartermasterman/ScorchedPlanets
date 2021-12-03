@@ -1,8 +1,10 @@
 from math import cos, sin
 from random import random
+from typing import Union
 
 from socketio import AsyncServer
 
+from .SoundType import SoundType
 from .SpriteType import SpriteType
 from .vector import Vector, Sphere
 
@@ -48,6 +50,10 @@ class Object:
         # queued changes to send via the socket
         # self.changes_queue = Queue()
         self.changes_queue = []
+
+        # Send a sound in the next update?
+        self._need_to_emit_sound: bool = False
+        self.sound_type_to_emit: Union[SoundType, ''] = ''
 
     @property
     def collision_sphere(self) -> Sphere:
@@ -135,3 +141,32 @@ class Object:
                                'sprite': str(self.sprite_type),
                                'update': self.changes_queue}, *args, **kwargs)
         self.changes_queue = []
+
+    @property
+    def need_to_emit_sound(self) -> bool:
+        """
+        Check if a sound needs to be emitted. Returns True if so, False otherwise. Side effect so that once this
+        method is called, the private variable self._need_to_emit_sound becomes False, to signal that the sound has
+        already been emitted.
+        :return: bool if sound needs to be emitted.
+        """
+        emit_sound_bool = self._need_to_emit_sound
+        self._need_to_emit_sound = False
+        return emit_sound_bool
+
+    @property
+    def sound_type_to_play(self) -> Union[SoundType, str]:
+        """
+        :return: SoundType of the sound if needs to be emitted, else ''
+        """
+        return self.sound_type_to_emit if self.need_to_emit_sound else ''
+
+    def play_sound(self, sound_type: SoundType) -> None:
+        """
+        Mark a sound that needs to be emitted.
+        :param sound_type: SoundType that needs to be emitted
+        :return: None
+        """
+        # print(f'{id(self), type(self)} is playing sound {sound_type}')
+        self._need_to_emit_sound = True
+        self.sound_type_to_emit = sound_type

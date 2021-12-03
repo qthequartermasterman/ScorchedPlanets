@@ -1,5 +1,6 @@
 from datetime import datetime
 from math import atan2
+from typing import Any, Dict
 
 from socketio import AsyncServer
 
@@ -30,6 +31,7 @@ class BulletObject(Object):
         self.collision_radius: float = 10
         self.explosion_sprite: SpriteType = SpriteType.EXPLOSION1_SPRITE
         self.explosion_sound: SoundType = SoundType.EXPLOSION7_SOUND
+        self.shoot_sound: SoundType = SoundType.SHOOT_SOUND
         self.bounces: int = 0  # Bounces for bouncing bullet (BULLET7)
         self.times_shot: int = 0  # Times shot manually by player after shooting initial bullet (BULLET8)
         self.bounce_limit: int = 0  # Max number of bounces
@@ -39,6 +41,8 @@ class BulletObject(Object):
         self.splitter: bool = False  # Does this bullet split?
         self.splitter_time: float = 0  # How long after creation does this bullet split?
         self.splitter_counter: int = 0  # How many bullets does this split into after bullet split?
+
+        self._need_to_emit_sound: bool = True
 
         # Set the damage, explosion radius, and/or other attributes based on the bullet type
         if sprite_type == SpriteType.BULLET_SPRITE:  # black standard
@@ -103,7 +107,7 @@ class BulletObject(Object):
         Object.move(self)
         self.roll = atan2(self.velocity.y, self.velocity.x)
         if not self.is_phantom:
-            self.EmitSmoke()
+            self.emit_smoke()
 
     async def emit_changes(self, server: AsyncServer, *args, **kwargs) -> None:
         """
@@ -112,20 +116,21 @@ class BulletObject(Object):
         :return: None
         """
         await server.emit('update',
-                          {'id': self.id,
-                           'sprite': str(self.sprite_type),
-                           'roll': self.roll,
-
-                           'x': self.position.x,
-                           'y': self.position.y},
+                          self.get_json(),
                           *args, **kwargs)
 
-    def get_json(self):
+    def get_json(self) -> Dict[str, Any]:
         return {'id': self.id,
                 'sprite': str(self.sprite_type),
                 'roll': self.roll,
                 'x': self.position.x,
-                'y': self.position.y}
+                'y': self.position.y,
+                'sound': str(self.sound_type_to_play)}
 
-    def EmitSmoke(self):
-        pass
+    @property
+    def sound_type_to_play(self) -> SoundType:
+        return self.shoot_sound if self.need_to_emit_sound else ''
+
+
+
+
