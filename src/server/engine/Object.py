@@ -155,7 +155,7 @@ class Object:
         return emit_sound_bool
 
     @property
-    def sound_type_to_play(self) -> Union[SoundType, '']:
+    def sound_type_to_play(self) -> Union[SoundType, str]:
         """
         :return: SoundType of the sound if needs to be emitted, else ''
         """

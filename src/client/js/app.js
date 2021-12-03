@@ -230,15 +230,18 @@ function loopSound(soundtype){
     }
 }
 
-function stopSound(sound){
-    //If soundtype is empty, we shouldn't play a sound.
-    if (soundtype) {
-        //Ignore 'SoundType.' in the front of the name.
-        const sound = sounds[soundtype.substring(10)];
+
+function stopAllSounds(){
+    for (const [name, sound] of Object.entries(sounds)){
         sound.loop = false;
         sound.pause();
+        sound.currentTime = 0;
     }
 }
+
+//Start menu music immediately
+sounds['NEWDAWN_MUSIC'].addEventListener('canplaythrough', ()=>{playSound('Soundtype.NEWDAWN_MUSIC')}, false)
+
 
 //Add html elements to the given element that
 function add_rooms_to_list(room_name, element){
@@ -324,6 +327,9 @@ function setupSocket(socket) {
             document.getElementById('gameAreaWrapper').removeChild(document.getElementById('chatbox'));
         }
 		c.focus();
+        //Play game music
+        stopAllSounds();
+        loopSound('SoundType.SCIFI_MUSIC');
     });
 
     socket.on('gameSetup', function(data) {
