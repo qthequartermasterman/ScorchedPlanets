@@ -308,14 +308,10 @@ class TankObject(Object):
             pass
 
     def _tank_state_postfire(self):
-        if not turns_enabled:
-            if self.is_player_character:
-                self.current_state = TankState.Manual
-            else:
-                self.current_state = TankState.Wait
+        if self.is_player_character:
+            self.current_state = TankState.Manual
         else:
-            # TODO: Implement turns
-            pass
+            self.current_state = TankState.Wait
 
     def _tank_state_firewait(self):
         pass
@@ -379,5 +375,5 @@ class TankObject(Object):
         if self.is_player_character:
             self.current_state = TankState.Manual
         # Check if it's my turn. If so, switch to think. If not, do nothing.
-        if not turns_enabled and not self.is_player_character:
+        if not self.is_player_character:
             self.current_state = TankState.Think

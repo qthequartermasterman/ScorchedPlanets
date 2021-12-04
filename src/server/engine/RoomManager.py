@@ -114,7 +114,7 @@ class Room:
                                          },
                                         room=sid)
                     if len(object_manager.tanks) > 1:
-                        object_manager.game_started = True
+                        object_manager.start_game()
                         print(f'Starting game in room {self.name}')
 
     def disconnect_player(self, sid: Sid):
