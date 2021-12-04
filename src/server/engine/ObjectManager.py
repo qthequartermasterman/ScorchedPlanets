@@ -57,6 +57,7 @@ class ObjectManager:
         self.current_tank: Optional[TankObject] = None  # The current tank whose turn it is
         self.total_turns: int = 0  # Total turns taken
         self.num_human_players: int = 0  # Number of human players
+        self.current_player_fired_gun: bool = False  # Keep track if the current player has fired their gun
 
     def create_planet(self, position: Vector, mass: float = 0, radius: int = 500) -> PlanetObject:
         """
@@ -180,6 +181,11 @@ class ObjectManager:
         elif tank.current_state == TankState.Think:
             self.adjust_aim(tank)
             tank.current_state = TankState.Move
+        elif tank.current_state == TankState.PostFire:
+            if tank.is_player_character:
+                self.current_state = TankState.Manual
+            else:
+                tank.current_state = TankState.Wait
         tank.move()
 
     async def move(self, server: AsyncServer):
@@ -187,18 +193,25 @@ class ObjectManager:
         Move all of the objects and perform collision detection and response
         :return:
         """
-        if self.game_started:
-            # print(self.current_player_sid, self.current_tank.current_state)
-            for bullet in self.bullets:
-                self.move_bullet(bullet)
-            if self.turns_enabled:
+        if not self.game_started:
+            return
+        for bullet in self.bullets:
+            self.move_bullet(bullet)
+        if self.turns_enabled:
+            print(self.bullets)
+            if not len(self.bullets):
                 self.move_tank(self.current_player_sid, self.current_tank)
-            else:
-                for sid, tank in self.tanks.items():
-                    self.move_tank(sid, tank)
+            if self.current_player_fired_gun and not len(self.bullets):
+                self.current_player_fired_gun = False
+                print('sending signal for next turn')
+                self.next_turn()
+        else:
+            for sid, tank in self.tanks.items():
+                self.move_tank(sid, tank)
 
-            self.collision_phase()
-            await self.cull_dead_objects(server)
+        self.collision_phase()
+        await self.cull_dead_objects(server)
+
 
     def calculate_gravity(self, position) -> Vector:
         acceleration: Vector = Vector(0, 0)
@@ -382,9 +395,8 @@ class ObjectManager:
                 if tank.bullet_counts[tank.selected_bullet] > 0:
                     self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
                     print('firing gun')
-                    if self.turns_enabled:
-                        print('sending signal for next turn')
-                        self.next_turn()
+                    if sid == self.current_player_sid:
+                        self.current_player_fired_gun = True
         except KeyError:  # If no tank shows up with that sid, then they are dead
             pass
 

@@ -240,7 +240,7 @@ function stopAllSounds(){
 }
 
 //Start menu music immediately after click (Chrome won't play audio until the user has interacted with the domain.)
-document.body.addEventListener('click', ()=>{loopSound('Soundtype.NEWDAWN_MUSIC')})
+document.body.addEventListener('click', ()=>{loopSound('Soundtype.NEWDAWN_MUSIC')}, {once: true})
 
 
 //Add html elements to the given element that
