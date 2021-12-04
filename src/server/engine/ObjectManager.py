@@ -173,21 +173,22 @@ class ObjectManager:
         # print('Bullet acceleration:', bullet.acceleration, abs(bullet.acceleration))
         bullet.move()
 
-    def move_tank(self, sid: str, tank: TankObject):
+    def move_tank(self, sid: str, tank: TankObject, currently_my_turn=True):
         # old_position: Vector = tank.position
-        tank.think()
-        if tank.current_state == TankState.FireWait:
-            self.fire_gun_sid(sid)
-            tank.current_state = TankState.PostFire
-        elif tank.current_state == TankState.Think:
-            self.adjust_aim(tank)
-            tank.current_state = TankState.Move
-        elif tank.current_state == TankState.PostFire:
-            if tank.is_player_character:
-                self.current_state = TankState.Manual
-            else:
-                tank.current_state = TankState.Wait
-        tank.move()
+        if currently_my_turn:
+            tank.think()
+            if tank.current_state == TankState.FireWait:
+                self.fire_gun_sid(sid)
+                tank.current_state = TankState.PostFire
+            elif tank.current_state == TankState.Think:
+                self.adjust_aim(tank)
+                tank.current_state = TankState.Move
+            elif tank.current_state == TankState.PostFire:
+                if tank.is_player_character:
+                    tank.current_state = TankState.Manual
+                else:
+                    tank.current_state = TankState.Wait
+        tank.move(currently_my_turn=currently_my_turn)
 
     async def move(self, server: AsyncServer):
         """
@@ -199,16 +200,13 @@ class ObjectManager:
         for bullet in self.bullets:
             self.move_bullet(bullet)
         if self.turns_enabled:
-            print(self.bullets)
             if not len(self.bullets):
                 self.move_tank(self.current_player_sid, self.current_tank)
             if self.current_player_fired_gun and not len(self.bullets):
                 self.current_player_fired_gun = False
-                print('sending signal for next turn')
                 self.next_turn()
-        else:
-            for sid, tank in self.tanks.items():
-                self.move_tank(sid, tank)
+        for sid, tank in self.tanks.items():
+            self.move_tank(sid, tank, currently_my_turn=False)
 
         self.collision_phase()
         await self.cull_dead_objects(server)
@@ -389,13 +387,10 @@ class ObjectManager:
     def fire_gun_sid(self, sid):
         try:
             if sid == self.current_player_sid or not self.turns_enabled:
-                print('fire_gun_sid')
                 tank = self.tanks[sid]
-                print('selecting_bullet')
                 tank.selected_bullet = tank.selected_bullet % len(tank.bullet_counts)
                 if tank.bullet_counts[tank.selected_bullet] > 0:
                     self.fire_gun(tank.bullet_types[tank.selected_bullet], tank)
-                    print('firing gun')
                     if sid == self.current_player_sid:
                         self.current_player_fired_gun = True
         except KeyError:  # If no tank shows up with that sid, then they are dead
@@ -703,16 +698,13 @@ class ObjectManager:
         Gives turn to the next tank in the list, wrapping around when the end is reached.
         :return:
         """
-        print('Next turn!', f'{self.current_player_sid=}')
         found_it: bool = False
         while not self.is_game_over:
             for sid, tank in self.tanks.items():
                 if sid == self.current_player_sid:
-                    print('found current player')
                     found_it = True
                 elif found_it and not tank.dead:
                     self.current_player_sid, self.current_tank = sid, tank
-                    print(f'Next player: {sid=}')
                     return self.current_tank
 
     def set_turn(self, tank_sid: str) -> TankObject:

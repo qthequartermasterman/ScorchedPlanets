@@ -136,28 +136,31 @@ class TankObject(Object):
         self.home_planet = new_planet
         self.position = pos
 
-    def move(self):
+    def move(self, currently_my_turn=True):
         # Check if I'm dead
         if self.health_points <= 0:
             self.kill()
         t: float = .1  # Time step
 
-        self.power += self.power_speed * t  # Affect power if keys are pressed down.
-        # It's totally possible to bring the power to the negatives, meaning the projectile starts shooting backwards.
-        # Let's not do that.
-        self.power = max(0, self.power)
-        self.angle += 30 * self.rotation_speed * t  # We want to move 30 degrees every second
-        self.angle = self.angle % 360  # Make sure our angle is less than 360.
-        self.roll = pi + (self.angle + self.longitude) * pi / 180
-        viewvec: Vector = self.view_vector
-        delta: float = 40 * t
+        if currently_my_turn:
+            # We should only move the tank controls if it's our turn
+            self.power += self.power_speed * t  # Affect power if keys are pressed down.
+            # It's totally possible to bring the power to the negatives, meaning the projectile starts shooting backwards.
+            # Let's not do that.
+            self.power = max(0, self.power)
+            self.angle += 30 * self.rotation_speed * t  # We want to move 30 degrees every second
+            self.angle = self.angle % 360  # Make sure our angle is less than 360.
+            self.roll = pi + (self.angle + self.longitude) * pi / 180
+            viewvec: Vector = self.view_vector
+            delta: float = 40 * t
 
-        if self.strafe_left:
-            self.longitude -= delta
-        elif self.strafe_right:
-            self.longitude += delta
-        self.longitude = self.longitude % 360
+            if self.strafe_left:
+                self.longitude -= delta
+            elif self.strafe_right:
+                self.longitude += delta
+            self.longitude = self.longitude % 360
 
+        # Fall down if the ground beneath us is gone.
         planet_center: Vector = self.home_planet.position
         direction_unit_vector: Vector = UnitVector(self.longitude * pi / 180)
         altitude: int = self.home_planet.get_altitude_at_angle(self.longitude)
@@ -174,6 +177,8 @@ class TankObject(Object):
             self.animation_state = TankAnimationState.Normal
             self.position = planet_center + (altitude + self.collision_radius) * direction_unit_vector
 
+
+        # Get ready for next tick
         self.strafe_right = self.strafe_left = False
         self.collision_sphere.center = self.position
         self.rotation_speed = 0
