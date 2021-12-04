@@ -46,6 +46,7 @@ class ObjectManager:
         self.dt: float = .001  # Time step for physics calculations
 
         self.level_name: str = ''
+        self.world_size = Vector(0, 0)
         self.game_started: bool = False
         self.file_path: str = file_path or './levels/Stage 1/I Was Here First!.txt'
         if self.file_path:
@@ -212,7 +213,6 @@ class ObjectManager:
         self.collision_phase()
         await self.cull_dead_objects(server)
 
-
     def calculate_gravity(self, position) -> Vector:
         acceleration: Vector = Vector(0, 0)
         for _, planet in self.planets.items():
@@ -224,7 +224,8 @@ class ObjectManager:
         return acceleration
 
     def at_world_edge(self, old_position) -> bool:
-        return False
+        return (old_position.x < 0 or old_position.x > self.world_size.x or
+                old_position.y < 0 or old_position.y > self.world_size.y)
 
     async def send_objects_initial(self, sio: AsyncServer, *args, **kwargs):
         for planet in self.planets.values():
@@ -536,7 +537,9 @@ class ObjectManager:
                 if pieces[0] == 'NAME':
                     self.level_name = ' '.join(pieces[1:])
                 elif pieces[0] == 'WORLD':
-                    pass
+                    w = int(pieces[1])  # width
+                    h = int(pieces[2])  # height
+                    self.world_size = Vector(w, h)
                 elif pieces[0] == 'PLANET':
                     self.create_planet(Vector(int(pieces[1]), int(pieces[2])),
                                        mass=int(pieces[3]),
