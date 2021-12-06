@@ -134,6 +134,7 @@ let trajectory = [];
 let target = {x: player.x, y: player.y};
 let room_names=[];
 global.target = target;
+let turns_enabled = false;  // Is the game-mode turns-enabled or live?
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
@@ -240,7 +241,7 @@ function stopAllSounds(){
 }
 
 //Start menu music immediately after click (Chrome won't play audio until the user has interacted with the domain.)
-document.body.addEventListener('click', ()=>{loopSound('Soundtype.NEWDAWN_MUSIC')})
+document.body.addEventListener('click', ()=>{loopSound('Soundtype.NEWDAWN_MUSIC')}, {once: true})
 
 
 //Add html elements to the given element that
@@ -369,6 +370,10 @@ function setupSocket(socket) {
             console.log('pushing user', data.id)
             users.push(data)
         }
+    });
+
+    socket.on('turns_enabled', function(data){
+        turns_enabled = data.turns_enabled;
     });
 
     socket.on('update', function(data){
@@ -530,13 +535,21 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
 }
 
 function getCenterXAndY(object){
-    return {x:object.x - player.x + global.screenWidth/2,
-            y:object.y - player.y + global.screenHeight/2}
+    let center_object;
+    if (turns_enabled && bullets.length){
+        center_object = bullets[0];
+    } else {
+        center_object = player;
+    }
+    return {x:object.x - center_object.x + global.screenWidth/2,
+            y:object.y - center_object.y + global.screenHeight/2}
 }
 
 function drawExplosion(explosion){
-    let centerX = explosion.x - player.x + global.screenWidth / 2 ;
-    let centerY = explosion.y - player.y + global.screenHeight / 2 ;
+    /*let centerX = explosion.x - player.x + global.screenWidth / 2 ;
+    let centerY = explosion.y - player.y + global.screenHeight / 2 ;*/
+    const center = getCenterXAndY(explosion)
+    const [centerX, centerY] = [center.x, center.y]
 
     let spriteName = explosion.sprite.substring(11);
 
@@ -621,8 +634,10 @@ function drawInventory(){
 }
 
 function drawTank(tank){
-    let centerX = tank.x - player.x + global.screenWidth / 2 ;
-    let centerY = tank.y - player.y + global.screenHeight / 2 ;
+    /*let centerX = tank.x - player.x + global.screenWidth / 2 ;
+    let centerY = tank.y - player.y + global.screenHeight / 2 ;*/
+    const center = getCenterXAndY(tank)
+    const [centerX, centerY] = [center.x, center.y]
 
     let difference_x = tank.x - tank.planet_x;
     let difference_y = tank.y - tank.planet_y;
@@ -661,8 +676,10 @@ function drawTank(tank){
 }
 
 function drawPlanet(planet){
-    let centerX = planet.x - player.x + global.screenWidth / 2
-    let centerY = planet.y - player.y + global.screenHeight / 2
+    /*let centerX = planet.x - player.x + global.screenWidth / 2
+    let centerY = planet.y - player.y + global.screenHeight / 2*/
+    const center = getCenterXAndY(planet)
+    const [centerX, centerY] = [center.x, center.y]
 
     //graph.strokeStyle = 'hsl(' + planet.hue + ', 100%, 45%)';
     graph.strokeStyle= 'grey';
@@ -706,8 +723,10 @@ function drawPlanet(planet){
 
 function drawBullet(bullet){
     //console.log('drawing bullet');
-    let centerX = bullet.x - player.x + global.screenWidth / 2;
-    let centerY = bullet.y - player.y + global.screenHeight / 2;
+    /*let centerX = bullet.x - player.x + global.screenWidth / 2;
+    let centerY = bullet.y - player.y + global.screenHeight / 2;*/
+    const center = getCenterXAndY(bullet)
+    const [centerX, centerY] = [center.x, center.y]
     let sprite_name = bullet.sprite.substring(11); //The string passed includes 'SpriteType.' before the name
     // console.log(sprite_name)
     // console.log(sprites[sprite_name], bullet.roll, centerX, centerY)
