@@ -228,6 +228,7 @@ class ObjectManager:
     async def send_objects_initial(self, sio: AsyncServer, *args, **kwargs):
         for planet in self.planets.values():
             await planet.emit_initial(sio, *args, **kwargs)
+        await sio.emit('turns_enabled', {'turns_enabled': self.turns_enabled})
         # for user in self.users:
         #     await user.emit_initial(self.tanks, sio, *args, **kwargs)
 

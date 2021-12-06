@@ -134,6 +134,7 @@ let trajectory = [];
 let target = {x: player.x, y: player.y};
 let room_names=[];
 global.target = target;
+let turns_enabled = false;  // Is the game-mode turns-enabled or live?
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
@@ -371,6 +372,10 @@ function setupSocket(socket) {
         }
     });
 
+    socket.on('turns_enabled', function(data){
+        turns_enabled = data.turns_enabled;
+    });
+
     socket.on('update', function(data){
         //console.log('updating', data)
         if (data.sprite === 'SpriteType.PLANET_SPRITE'){
@@ -532,7 +537,7 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
 function getCenterXAndY(object){
     //TODO: Don't follow bullets if turns is not enabled.
     let center_object;
-    if (bullets.length){
+    if (turns_enabled && bullets.length){
         center_object = bullets[0];
     } else {
         center_object = player;
