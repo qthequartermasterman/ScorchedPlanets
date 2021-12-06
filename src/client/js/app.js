@@ -535,7 +535,6 @@ function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY
 }
 
 function getCenterXAndY(object){
-    //TODO: Don't follow bullets if turns is not enabled.
     let center_object;
     if (turns_enabled && bullets.length){
         center_object = bullets[0];
