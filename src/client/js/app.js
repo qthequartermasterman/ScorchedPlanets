@@ -135,6 +135,7 @@ let target = {x: player.x, y: player.y};
 let room_names=[];
 global.target = target;
 let turns_enabled = false;  // Is the game-mode turns-enabled or live?
+let particles = []; //List of particles to render
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
@@ -191,7 +192,40 @@ sprites = {
     BULLET10_SPRITE: load_image('/img/BulletSprites/bullet8.png'),
     BULLET11_SPRITE: load_image('/img/BulletSprites/bullet9.png'),
     BULLET12_SPRITE: load_image('/img/BulletSprites/bullet10.png'),
-    MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png')
+    MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png'),
+    SPARK_SPRITE: load_image('/img/spark.png')
+}
+
+class Particle{
+    constructor(sprite, position, life_span, tint,
+                max_scale=1, scale_in_frac=0,
+                fade_in_frac=0, fad_out_frac=0){
+        this.sprite = sprite;
+        this.position = position;
+        this.life_span = life_span;
+        this.max_scale = max_scale;
+        this.scale_in_frac = scale_in_frac;
+        this.fade_in_frac = fade_in_frac;
+        this.fad_out_frac = fad_out_frac;
+        this.tint = tint;
+        this.time_created = Date.now();
+
+
+        this.dead = false;
+        this.image = sprites[sprite];
+    }
+
+    time_check(){
+        if (this.life_span < Date.now() - this.time_created){
+            this.dead = true;
+        }
+        return this.dead;
+    }
+
+    draw(context){
+        const center = getCenterXAndY(this.position);
+        rotateAndDrawImage(context, this.image, 0, center.x, center.y);
+    }
 }
 
 //grab sounds from the html
@@ -579,6 +613,8 @@ function drawTrajectory(trajectory){
 }
 
 
+
+
 function drawHPBar(health){
     //Clear
     health_ctx.clearRect(0, 0, global.screenWidth, global.screenHeight);
@@ -722,16 +758,15 @@ function drawPlanet(planet){
 }
 
 function drawBullet(bullet){
-    //console.log('drawing bullet');
-    /*let centerX = bullet.x - player.x + global.screenWidth / 2;
-    let centerY = bullet.y - player.y + global.screenHeight / 2;*/
     const center = getCenterXAndY(bullet)
-    const [centerX, centerY] = [center.x, center.y]
     let sprite_name = bullet.sprite.substring(11); //The string passed includes 'SpriteType.' before the name
-    // console.log(sprite_name)
-    // console.log(sprites[sprite_name], bullet.roll, centerX, centerY)
-    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, centerX, centerY,0,0);
+    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, center.x, center.y,0,0);
     playSound(bullet.sound);
+    // Every so often, add a particle to show the trajectory
+    // 10 times a second add a particle
+    if (( Date.now() % 100)<50){
+        particles.push(new Particle('BULLET2_SPRITE', {x:bullet.x, y:bullet.y}, 10000, 'tint', .1));
+    }
 }
 
 
@@ -800,6 +835,13 @@ function drawborder() {
     }
 }
 
+function drawParticles(){
+    particles = particles.filter(particle => !particle.time_check()); // Delete all of the dead particles
+    for (let particle of particles){
+        particle.draw(graph);
+    }
+}
+
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame       ||
             window.webkitRequestAnimationFrame ||
@@ -833,9 +875,10 @@ function gameLoop() {
     else if (!global.disconnected) {
         if (global.gameStart) {
             graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
-            planets.forEach(drawPlanet)
+            planets.forEach(drawPlanet);
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
+            drawParticles();
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
             drawInventory();
@@ -845,7 +888,6 @@ function gameLoop() {
                 drawborder();
             }
             socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
-
         } else {
             graph.fillStyle = '#333333';
             graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
