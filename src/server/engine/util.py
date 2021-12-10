@@ -9,3 +9,6 @@ def validNick(nickname):
 # Type Aliases
 # Sid is just a string representing some socket-id, which is usually some hash. Aliasing makes documentation clearer.
 Sid = str
+
+# Colors
+colors = ['Red', 'Yellow', 'Blue', 'Orange', 'DarkOrange', 'Pink', 'Salmon']

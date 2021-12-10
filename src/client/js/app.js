@@ -613,7 +613,8 @@ function drawExplosion(explosion){
 }
 
 function drawTrajectory(trajectory){
-    graph.strokeStyle = 'red';
+    const current_tank = findPlayer(currentPlayer);
+    graph.strokeStyle = current_tank ? (current_tank.hue || 'red') : 'red';
     graph.lineWidth="5";
     graph.setLineDash([5,15]);
     graph.beginPath();
