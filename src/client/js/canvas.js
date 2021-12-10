@@ -101,16 +101,16 @@ class Canvas {
     	this.target = { x : 0, y: 0 };
     	var directionHorizontal = 0;
     	var directionVertical = 0;
-    	for (var i = 0, len = list.length; i < len; i++) {
-    		if (directionHorizontal === 0) {
-    			if (list[i] === global.KEY_LEFT) directionHorizontal -= Number.MAX_VALUE;
-    			else if (list[i] === global.KEY_RIGHT) directionHorizontal += Number.MAX_VALUE;
-    		}
-    		if (directionVertical === 0) {
-    			if (list[i] === global.KEY_UP) directionVertical -= Number.MAX_VALUE;
-    			else if (list[i] === global.KEY_DOWN) directionVertical += Number.MAX_VALUE;
-    		}
-    	}
+    	// for (var i = 0, len = list.length; i < len; i++) {
+    	// 	if (directionHorizontal === 0) {
+    	// 		if (list[i] === global.KEY_LEFT) directionHorizontal -= Number.MAX_VALUE;
+    	// 		else if (list[i] === global.KEY_RIGHT) directionHorizontal += Number.MAX_VALUE;
+    	// 	}
+    	// 	if (directionVertical === 0) {
+    	// 		if (list[i] === global.KEY_UP) directionVertical -= Number.MAX_VALUE;
+    	// 		else if (list[i] === global.KEY_DOWN) directionVertical += Number.MAX_VALUE;
+    	// 	}
+    	// }
     	this.target.x += directionHorizontal;
     	this.target.y += directionVertical;
         global.target = this.target;

@@ -613,24 +613,22 @@ function drawExplosion(explosion){
 }
 
 function drawTrajectory(trajectory){
-    console.log('drawing traj')
     graph.strokeStyle = 'red';
     graph.lineWidth="5";
+    graph.setLineDash([5,15]);
     graph.beginPath();
     for (let i = 0; i < trajectory.length; i++){
         const point = {x:trajectory[i][0], y:trajectory[i][1]}
         const center = getCenterXAndY(point);
-        //graph.fillRect(centerX, centerY,1, 1);
         if (i === 0) {
-            console.log(point, center, getCenterXAndY(player))
             graph.moveTo(center.x, center.y);
         } else {
             graph.lineTo(center.x, center.y);
         }
 
     }
-    // graph.closePath();
     graph.stroke();
+    graph.setLineDash([]); //Reset the dashed lines
 
 }
 
@@ -898,13 +896,13 @@ function gameLoop() {
         if (global.gameStart) {
             graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
             planets.forEach(drawPlanet);
+            drawTrajectory(trajectory); //Trajectory before users, so that it's not renders atop tanks
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
             drawParticles();
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
             drawInventory();
-            drawTrajectory(trajectory);
 
             if (global.borderDraw) {
                 drawborder();
