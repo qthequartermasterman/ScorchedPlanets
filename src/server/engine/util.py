@@ -11,4 +11,5 @@ def validNick(nickname):
 Sid = str
 
 # Colors
-colors = ['Red', 'Yellow', 'Blue', 'Orange', 'DarkOrange', 'Pink', 'Salmon']
+colors = ['Red', 'Yellow', 'Blue', 'Orange', 'DarkOrange', 'HotPink', 'Salmon', 'Gold', 'Magenta', 'DarkViolet',
+          'LimeGreen', 'Olive', 'CadetBlue', 'DeepSkyBlue', 'SandyBrown']

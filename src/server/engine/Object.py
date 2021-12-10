@@ -1,5 +1,5 @@
 from math import cos, sin
-from random import random
+from random import random, choice
 from typing import Union
 
 from socketio import AsyncServer
@@ -7,6 +7,7 @@ from socketio import AsyncServer
 from .SoundType import SoundType
 from .SpriteType import SpriteType
 from .vector import Vector, Sphere
+from .util import colors
 
 
 class Object:
@@ -37,7 +38,7 @@ class Object:
 
         self.gun_timer: float = 0
         self.smoke_timer: float = 0
-        self.hue = round(random() * 360)
+        self.hue = choice(colors)
         # self.smoke_color
 
         self.dead: bool = False

@@ -17,7 +17,7 @@ from socketio import AsyncServer
 
 from .ObjectManager import ObjectManager
 from .Config import ConfigData
-from .util import validNick, Sid
+from .util import validNick, Sid, colors
 from .vector import Vector
 from .PlayerInfo import PlayerInfo
 
@@ -101,7 +101,7 @@ class Room:
                     object_manager.create_tank(longitude=random() * 360,
                                                home_planet=choice(list(object_manager.planets.values())),
                                                sid=sid,
-                                               color=str(int(random() * 360)),
+                                               color=choice(colors),
                                                is_player=True)
 
                     users.append(session['currentPlayer'])
