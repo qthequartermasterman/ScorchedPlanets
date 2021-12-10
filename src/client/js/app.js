@@ -615,16 +615,22 @@ function drawExplosion(explosion){
 function drawTrajectory(trajectory){
     console.log('drawing traj')
     graph.strokeStyle = 'red';
+    graph.lineWidth="5";
     graph.beginPath();
     for (let i = 0; i < trajectory.length; i++){
-        let center = getCenterXAndY({x:trajectory[i][0], y:trajectory[i][1]});
-        let centerX = center.x;
-        let centerY = center.y;
+        const point = {x:trajectory[i][0], y:trajectory[i][1]}
+        const center = getCenterXAndY(point);
         //graph.fillRect(centerX, centerY,1, 1);
-        graph.moveTo(centerX, centerY);
+        if (i === 0) {
+            console.log(point, center, getCenterXAndY(player))
+            graph.moveTo(center.x, center.y);
+        } else {
+            graph.lineTo(center.x, center.y);
+        }
+
     }
-    graph.closePath()
-    graph.stroke()
+    // graph.closePath();
+    graph.stroke();
 
 }
 
@@ -898,7 +904,7 @@ function gameLoop() {
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
             drawInventory();
-            //drawTrajectory(trajectory);
+            drawTrajectory(trajectory);
 
             if (global.borderDraw) {
                 drawborder();

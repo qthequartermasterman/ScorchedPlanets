@@ -453,7 +453,7 @@ class RoomManager:
         Get a list of all of the current room names.
         :return:
         """
-        return list(key for key in self.rooms.keys() if key != 'default')
+        return [key for key in self.rooms.keys() if key != 'default']
 
     async def game_loop(self):
         """
@@ -471,3 +471,6 @@ class RoomManager:
 
     async def send_room_list(self, room=None):
         await self.sio.emit('room_list', self.get_list_of_room_names(), room=room)
+
+    async def update_target(self, player_sid: Sid, target: Vector):
+        await self.get_object_manager_from_sid(player_sid).update_target(player_sid, target)

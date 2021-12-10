@@ -1,6 +1,6 @@
 from datetime import datetime
 from itertools import product
-from math import pi, cos, sin, atan2
+from math import pi, cos, sin, atan2, sqrt
 from random import random, randint, choice
 from typing import List, Dict, Optional, Callable
 
@@ -616,32 +616,41 @@ class ObjectManager:
         self.__init__(self.sio, file_path)
 
     async def calculate_trajectory(self, t: SpriteType, position: Vector, velocity: Vector, owner: TankObject):
-        print('Calculating trajectory:', owner, position, velocity)
+        # print('Calculating trajectory:', owner, position, velocity)
         phantom_bullet = BulletObject(position, sprite_type=t)
         phantom_bullet.owner = owner
         phantom_bullet.is_phantom = True
         phantom_bullet.velocity = velocity
         positions = []
         # Step it 200 times at once
-        for i in range(200):
+        for _ in range(200):
             phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
             phantom_bullet.move()
-
-            # Only need to check for collision as much as we draw the dots
-            if i % 10 == (datetime.now().timestamp() * 30) % 10:
-                # Check for collisions with planets
-                for planet in self.planets.values():
-                    if planet.intersects(phantom_bullet.collision_sphere):
-                        phantom_bullet.dead = True
-                        break
-                if self.at_world_edge(phantom_bullet.position):
+            # Check for collisions with planets
+            for planet in self.planets.values():
+                if planet.intersects(phantom_bullet.collision_sphere):
                     phantom_bullet.dead = True
                     break
+            if self.at_world_edge(phantom_bullet.position):
+                phantom_bullet.dead = True
+                break
+            if phantom_bullet.dead:
+                break
 
-            positions.append((int(phantom_bullet.position.x), int(phantom_bullet.position.x)))
+            positions.append((int(phantom_bullet.position.x), int(phantom_bullet.position.y)))
 
         del phantom_bullet
         return positions
+
+    async def calculate_current_player_trajectory(self, sio, *args, **kwargs):
+        tank = self.current_tank
+        positions = await self.calculate_trajectory(t=tank.bullet_types[tank.selected_bullet],
+                                                    position=tank.position,
+                                                    velocity=tank.power * -tank.view_vector,
+                                                    owner=tank)
+        await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions},
+                       room=self.current_player_sid,
+                       *args, **kwargs)
 
     async def calculate_all_trajectories(self, sio: AsyncServer, *args, **kwargs):
         for user in self.users:
@@ -725,3 +734,13 @@ class ObjectManager:
         self.game_started = True
         self.current_player_sid, self.current_tank = list(self.tanks.items())[0]  # Pick the first player
         await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
+
+    async def update_target(self, player_sid, target):
+        if self.current_player_sid == player_sid:
+            tank = self.tanks[player_sid]
+            # Set Angle
+            tank.angle = atan2(target.y, target.x) * (180/pi) - tank.longitude + 270
+            # Set Power
+            tank.power = min(1.5 * sqrt(target.x**2 + target.y**2), tank.basePower + tank.currentFuel)
+            await self.calculate_current_player_trajectory(self.sio)
+

@@ -22,6 +22,10 @@ class Canvas {
         this.cv.addEventListener('keydown', this.directionDown, false);
         this.cv.addEventListener('touchstart', this.touchInput, false);
         this.cv.addEventListener('touchmove', this.touchInput, false);
+        this.cv.addEventListener('click', function(event){
+            console.log(event);
+            this.parent.socket.emit('fire_gun');
+        }, false)
         this.cv.parent = self;
         global.canvas = this;
 
