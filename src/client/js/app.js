@@ -46,6 +46,15 @@ function validNick() {
     return regex.exec(playerNameInput.value) !== null;
 }
 
+function findPlayer(playerSid){
+    for (let user of users){
+        if (user.id === playerSid){
+            return user;
+        }
+    }
+    return undefined;
+}
+
 window.onload = function() {
 
     if (!socket) {
@@ -136,6 +145,7 @@ let room_names=[];
 global.target = target;
 let turns_enabled = false;  // Is the game-mode turns-enabled or live?
 let particles = []; //List of particles to render
+let currentPlayer = '';
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
@@ -537,7 +547,11 @@ function setupSocket(socket) {
 
     socket.on('trajectory', function(data){
         trajectory = data.positions;
-    })
+    });
+
+    socket.on('next-turn', function(data){
+       currentPlayer = data.current_player;
+    });
 }
 
 function drawCircle(centerX, centerY, radius, sides) {
@@ -573,23 +587,25 @@ function getCenterXAndY(object){
     if (turns_enabled && bullets.length){
         center_object = bullets[0];
     } else {
-        center_object = player;
+        const currentPlayerInfo = findPlayer(currentPlayer);
+        if (currentPlayerInfo) {
+            center_object = currentPlayerInfo;
+        } else {
+            center_object = player;
+        }
     }
     return {x:object.x - center_object.x + global.screenWidth/2,
             y:object.y - center_object.y + global.screenHeight/2}
 }
 
 function drawExplosion(explosion){
-    /*let centerX = explosion.x - player.x + global.screenWidth / 2 ;
-    let centerY = explosion.y - player.y + global.screenHeight / 2 ;*/
     const center = getCenterXAndY(explosion)
-    const [centerX, centerY] = [center.x, center.y]
 
     let spriteName = explosion.sprite.substring(11);
 
-    drawCircle(centerX, centerY, explosion.radius, 16);
+    drawCircle(center.x, center.y, explosion.radius, 16);
 
-    rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0);
+    rotateAndDrawImage(graph, sprites[spriteName], 0, center.x, center.y, 0, 0);
 
     // Play the sound
     playSound(explosion.sound)
@@ -740,7 +756,7 @@ function drawPlanet(planet){
 
 
 
-    for (var i = 0; i < planet.number_of_altitudes; i++) {
+    for (let i = 0; i < planet.number_of_altitudes; i++) {
         theta = (i / planet.number_of_altitudes) * 2 * Math.PI;
         x = centerX + planet.altitudes[i] * Math.cos(theta);
         y = centerY + planet.altitudes[i] * Math.sin(theta);

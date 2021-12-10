@@ -32,7 +32,7 @@ def only_if_current_player(func: Callable) -> Callable:
 
 
 class ObjectManager:
-    def __init__(self, file_path: str = ''):
+    def __init__(self, sio: Optional[AsyncServer] = None, file_path: str = ''):
         self.explosions = []
         self.users = []
         self.sockets = {}
@@ -40,6 +40,8 @@ class ObjectManager:
         self.tanks: Dict[str, TankObject] = {}
         self.bullets: List[BulletObject] = []
         self.wormholes: List[WormholeObject] = []
+
+        self.sio: Optional[AsyncServer] = sio
 
         self.gravity_constant: float = gravity_constant  # Gravity Constant in Newton's Law of Universal Gravitation
         self.softening_parameter: float = 0
@@ -204,7 +206,7 @@ class ObjectManager:
                 self.move_tank(self.current_player_sid, self.current_tank)
             if self.current_player_fired_gun and not len(self.bullets):
                 self.current_player_fired_gun = False
-                self.next_turn()
+                await self.next_turn()
         for sid, tank in self.tanks.items():
             self.move_tank(sid, tank, currently_my_turn=False)
 
@@ -694,7 +696,7 @@ class ObjectManager:
     def num_tanks_alive(self) -> int:
         return len([tank for tank in self.tanks.values() if not tank.dead])
 
-    def next_turn(self) -> TankObject:
+    async def next_turn(self) -> TankObject:
         """
         Gives turn to the next tank in the list, wrapping around when the end is reached.
         :return:
@@ -706,17 +708,20 @@ class ObjectManager:
                     found_it = True
                 elif found_it and not tank.dead:
                     self.current_player_sid, self.current_tank = sid, tank
+                    await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
                     return self.current_tank
 
-    def set_turn(self, tank_sid: str) -> TankObject:
+    async def set_turn(self, tank_sid: str) -> TankObject:
         """
         Sets the turn to the tank, instead of incrementing to the next one.
         :param tank_sid:
         :return:
         """
         self.current_player_sid, self.current_tank = tank_sid, self.tanks[tank_sid]
+        await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
         return self.current_tank
 
-    def start_game(self):
+    async def start_game(self) -> None:
         self.game_started = True
         self.current_player_sid, self.current_tank = list(self.tanks.items())[0]  # Pick the first player
+        await self.sio.emit('next-turn', {'current_player': self.current_player_sid})

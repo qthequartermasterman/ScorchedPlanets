@@ -114,7 +114,7 @@ class Room:
                                          },
                                         room=sid)
                     if len(object_manager.tanks) > 1:
-                        object_manager.start_game()
+                        await object_manager.start_game()
                         print(f'Starting game in room {self.name}')
 
     def disconnect_player(self, sid: Sid):
@@ -187,7 +187,7 @@ class RoomManager:
         :return: None
         """
         if name not in self.rooms:
-            self.rooms[name] = Room(name, self.sio, ObjectManager(file_path=level_path))
+            self.rooms[name] = Room(name, self.sio, ObjectManager(sio=self.sio, file_path=level_path))
 
         else:
             raise RoomAlreadyExistsError(f'Room with name {name} already exists.')
@@ -413,7 +413,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_objects_initial(*args,  **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_objects_initial(*args, **kwargs) for room in self.rooms.values()])
 
     async def send_updates(self, *args, **kwargs):
         """
@@ -424,7 +424,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_updates(*args,  **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_updates(*args, **kwargs) for room in self.rooms.values()])
 
     async def move_loop(self) -> Future:
         """
