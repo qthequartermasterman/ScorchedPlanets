@@ -114,7 +114,6 @@ class TankObject(Object):
         self.in_control: bool  # If input is currently controlling this object
 
         self.hue = color or choice(colors)
-        print(self.hue)
 
     def take_damage(self, damage: int):
         """

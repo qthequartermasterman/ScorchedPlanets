@@ -612,26 +612,6 @@ function drawExplosion(explosion){
 
 }
 
-function drawTrajectory(trajectory){
-    const current_tank = findPlayer(currentPlayer);
-    graph.strokeStyle = current_tank ? (current_tank.hue || 'red') : 'red';
-    graph.lineWidth="5";
-    graph.setLineDash([5,15]);
-    graph.beginPath();
-    for (let i = 0; i < trajectory.length; i++){
-        const point = {x:trajectory[i][0], y:trajectory[i][1]}
-        const center = getCenterXAndY(point);
-        if (i === 0) {
-            graph.moveTo(center.x, center.y);
-        } else {
-            graph.lineTo(center.x, center.y);
-        }
-
-    }
-    graph.stroke();
-    graph.setLineDash([]); //Reset the dashed lines
-
-}
 
 
 
@@ -786,7 +766,7 @@ function drawBullet(bullet){
     // Every so often, add a particle to show the trajectory
     // 10 times a second add a particle
     if (( Date.now() % 100)<50){
-        particles.push(new Particle('BULLET2_SPRITE', {x:bullet.x, y:bullet.y}, 10000, 'tint', .1));
+        particles.push(new Particle('BULLET2_SPRITE', {x:bullet.x, y:bullet.y}, 10000, bullet.hue, .1));
     }
 }
 
@@ -858,9 +838,49 @@ function drawborder() {
 
 function drawParticles(){
     particles = particles.filter(particle => !particle.time_check()); // Delete all of the dead particles
-    for (let particle of particles){
-        particle.draw(graph);
+    // for (let particle of particles){
+    //     particle.draw(graph);
+    // }
+    graph.lineWidth = "5";
+    graph.setLineDash([5,15]);
+    graph.beginPath();
+    graph.strokeStyle = '';
+    let current_color = '';
+    for (let i in particles){
+        const point = {x:particles[i].position.x, y:particles[i].position.y}
+        const center = getCenterXAndY(point);
+        console.log(center, graph.strokeStyle);
+        if (current_color !== particles[i].tint) {
+            graph.strokeStyle = particles[i].tint || 'red';
+            current_color = particles[i].tint || 'red';
+            graph.moveTo(center.x, center.y);
+        } else {
+            graph.lineTo(center.x, center.y);
+        }
     }
+    graph.stroke();
+    graph.setLineDash([]); //Reset the dashed lines
+}
+
+function drawTrajectory(trajectory){
+    const current_tank = findPlayer(currentPlayer);
+    graph.strokeStyle = current_tank ? (current_tank.hue || 'red') : 'red';
+    graph.lineWidth="5";
+    graph.setLineDash([5,15]);
+    graph.beginPath();
+    for (let i = 0; i < trajectory.length; i++){
+        const point = {x:trajectory[i][0], y:trajectory[i][1]}
+        const center = getCenterXAndY(point);
+        if (i === 0) {
+            graph.moveTo(center.x, center.y);
+        } else {
+            graph.lineTo(center.x, center.y);
+        }
+
+    }
+    graph.stroke();
+    graph.setLineDash([]); //Reset the dashed lines
+
 }
 
 window.requestAnimFrame = (function() {

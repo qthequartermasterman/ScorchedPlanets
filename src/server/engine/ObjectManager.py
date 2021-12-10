@@ -350,6 +350,7 @@ class ObjectManager:
 
         bullet.velocity = owner.power * (view + deflection)  # Power is the starting velocity
         bullet.roll = owner.roll
+        bullet.hue = owner.hue
 
         if owner.selected_bullet not in (0, 1):
             owner.bullet_counts[owner.selected_bullet] -= 1
