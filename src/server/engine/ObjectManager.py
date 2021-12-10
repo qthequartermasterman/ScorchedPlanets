@@ -613,7 +613,7 @@ class ObjectManager:
 
     def reset(self, file_path=''):
         file_path = file_path or self.file_path
-        self.__init__(file_path)
+        self.__init__(self.sio, file_path)
 
     async def calculate_trajectory(self, t: SpriteType, position: Vector, velocity: Vector, owner: TankObject):
         print('Calculating trajectory:', owner, position, velocity)
