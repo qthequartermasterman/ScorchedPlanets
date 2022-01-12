@@ -315,6 +315,16 @@ function update_play_button(){
     }
 }
 
+function returnToMenu(){
+    document.getElementById('gameAreaWrapper').style.opacity = 0;
+    document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+    global.died = false;
+    if (global.animLoopHandle) {
+        window.cancelAnimationFrame(global.animLoopHandle);
+        global.animLoopHandle = undefined;
+    }
+}
+
 
 // socket stuff.
 function setupSocket(socket) {
@@ -336,6 +346,13 @@ function setupSocket(socket) {
     socket.on('disconnect', function () {
         socket.close();
         global.disconnected = true;
+    });
+
+    socket.on('room_close', function(){
+        global.gameStart = false;
+        global.roomClosing = true;
+        planets = []
+        window.setTimeout(returnToMenu, 7500);
     });
 
     socket.on('room_list', (list)=>{
@@ -384,7 +401,7 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', function (data) {
-        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> was eaten.');
+        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> has died.');
     });
 
     socket.on('playerDisconnect', function (data) {
@@ -522,15 +539,7 @@ function setupSocket(socket) {
         global.gameStart = false;
         global.died = true;
         planets = []
-        window.setTimeout(function() {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            global.died = false;
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        window.setTimeout(returnToMenu, 2500);
     });
 
     socket.on('kick', function (data) {
@@ -914,6 +923,15 @@ function gameLoop() {
         graph.fillStyle = '#FFFFFF';
         graph.font = 'bold 30px sans-serif';
         graph.fillText('You died!', global.screenWidth / 2, global.screenHeight / 2);
+    }
+    else if (global.roomClosing) {
+        graph.fillStyle = '#333333';
+        graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
+
+        graph.textAlign = 'center';
+        graph.fillStyle = '#FFFFFF';
+        graph.font = 'bold 30px sans-serif';
+        graph.fillText('Room is closing!', global.screenWidth / 2, global.screenHeight / 2);
     }
     else if (!global.disconnected) {
         if (global.gameStart) {

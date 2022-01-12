@@ -37,6 +37,7 @@ global = {
     toggleMassState: 0,
     backgroundColor: '#f2fbff',
     lineColor: '#000000',
+    roomClosing: false,
 };
 
 
