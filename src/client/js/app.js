@@ -841,25 +841,27 @@ function drawParticles(){
     // for (let particle of particles){
     //     particle.draw(graph);
     // }
-    graph.lineWidth = "5";
-    graph.setLineDash([5,15]);
-    graph.beginPath();
-    graph.strokeStyle = '';
-    let current_color = '';
+    // graph.lineWidth = "5";
+    // graph.setLineDash([5,15]);
+    // graph.beginPath();
+    // graph.strokeStyle = '';
+    // let current_color = '';
     for (let i in particles){
         const point = {x:particles[i].position.x, y:particles[i].position.y}
         const center = getCenterXAndY(point);
         console.log(center, graph.strokeStyle);
-        if (current_color !== particles[i].tint) {
-            graph.strokeStyle = particles[i].tint || 'red';
-            current_color = particles[i].tint || 'red';
-            graph.moveTo(center.x, center.y);
-        } else {
-            graph.lineTo(center.x, center.y);
-        }
+        // if (current_color !== particles[i].tint) {
+        //     graph.strokeStyle = particles[i].tint || 'red';
+        //     current_color = particles[i].tint || 'red';
+        //     graph.moveTo(center.x, center.y);
+        // } else {
+        //     graph.lineTo(center.x, center.y);
+        // }
+        graph.fillStyle = particles[i].tint || 'red';
+        graph.fillRect(center.x, center.y, 5,5);
     }
-    graph.stroke();
-    graph.setLineDash([]); //Reset the dashed lines
+    // graph.stroke();
+    // graph.setLineDash([]); //Reset the dashed lines
 }
 
 function drawTrajectory(trajectory){
