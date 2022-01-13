@@ -472,5 +472,6 @@ class RoomManager:
     async def send_room_list(self, room=None):
         await self.sio.emit('room_list', self.get_list_of_room_names(), room=room)
 
+    @pass_if_no_object_manager_error
     async def update_target(self, player_sid: Sid, target: Vector):
         await self.get_object_manager_from_sid(player_sid).update_target(player_sid, target)

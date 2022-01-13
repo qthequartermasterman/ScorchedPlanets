@@ -394,7 +394,7 @@ class ObjectManager:
 
     def fire_gun_sid(self, sid):
         try:
-            if sid == self.current_player_sid or not self.turns_enabled:
+            if (sid == self.current_player_sid and not self.current_player_fired_gun) or not self.turns_enabled:
                 tank = self.tanks[sid]
                 tank.selected_bullet = tank.selected_bullet % len(tank.bullet_counts)
                 if tank.bullet_counts[tank.selected_bullet] > 0:
