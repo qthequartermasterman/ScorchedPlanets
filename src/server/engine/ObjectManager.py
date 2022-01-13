@@ -1,6 +1,6 @@
 from datetime import datetime
 from itertools import product
-from math import pi, cos, sin, atan2
+from math import pi, cos, sin, atan2, sqrt
 from random import random, randint, choice
 from typing import List, Dict, Optional, Callable
 
@@ -32,7 +32,7 @@ def only_if_current_player(func: Callable) -> Callable:
 
 
 class ObjectManager:
-    def __init__(self, file_path: str = ''):
+    def __init__(self, sio: Optional[AsyncServer] = None, file_path: str = ''):
         self.explosions = []
         self.users = []
         self.sockets = {}
@@ -40,6 +40,8 @@ class ObjectManager:
         self.tanks: Dict[str, TankObject] = {}
         self.bullets: List[BulletObject] = []
         self.wormholes: List[WormholeObject] = []
+
+        self.sio: Optional[AsyncServer] = sio
 
         self.gravity_constant: float = gravity_constant  # Gravity Constant in Newton's Law of Universal Gravitation
         self.softening_parameter: float = 0
@@ -204,7 +206,7 @@ class ObjectManager:
                 self.move_tank(self.current_player_sid, self.current_tank)
             if self.current_player_fired_gun and not len(self.bullets):
                 self.current_player_fired_gun = False
-                self.next_turn()
+                await self.next_turn()
         for sid, tank in self.tanks.items():
             self.move_tank(sid, tank, currently_my_turn=False)
 
@@ -280,15 +282,17 @@ class ObjectManager:
         #     sid = self.sockets[u.id]
         #     await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
 
-    def strafe_right(self, sid):
+    async def strafe_right(self, sid):
         try:
             self.tanks[sid].strafe_right = True
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:  # Dead player trying to move. Avoid crash
             pass
 
-    def strafe_left(self, sid):
+    async def strafe_left(self, sid):
         try:
             self.tanks[sid].strafe_left = True
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:  # Dead player trying to move. Avoid crash
             pass
 
@@ -305,15 +309,17 @@ class ObjectManager:
         except IndexError:
             pass
 
-    def angle_left(self, sid):
+    async def angle_left(self, sid):
         try:
             self.tanks[sid].rotation_speed = -1
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             pass
 
-    def angle_right(self, sid):
+    async def angle_right(self, sid):
         try:
             self.tanks[sid].rotation_speed = 1
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             pass
 
@@ -348,6 +354,7 @@ class ObjectManager:
 
         bullet.velocity = owner.power * (view + deflection)  # Power is the starting velocity
         bullet.roll = owner.roll
+        bullet.hue = owner.hue
 
         if owner.selected_bullet not in (0, 1):
             owner.bullet_counts[owner.selected_bullet] -= 1
@@ -489,20 +496,22 @@ class ObjectManager:
             self.tanks.pop(sid)
             await server.emit('RIP', room=sid)
 
-    def power_up(self, sid):
+    async def power_up(self, sid):
         try:
             player = self.tanks[sid]
             player.power += 2
             player.power = min(player.power, player.basePower + player.currentFuel)
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             # Player is dead
             pass
 
-    def power_down(self, sid):
+    async def power_down(self, sid):
         try:
             player = self.tanks[sid]
             player.power -= 2
             player.power = max(player.power, 1)
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             # Player is dead
             pass
@@ -611,35 +620,44 @@ class ObjectManager:
 
     def reset(self, file_path=''):
         file_path = file_path or self.file_path
-        self.__init__(file_path)
+        self.__init__(self.sio, file_path)
 
     async def calculate_trajectory(self, t: SpriteType, position: Vector, velocity: Vector, owner: TankObject):
-        print('Calculating trajectory:', owner, position, velocity)
+        # print('Calculating trajectory:', owner, position, velocity)
         phantom_bullet = BulletObject(position, sprite_type=t)
         phantom_bullet.owner = owner
         phantom_bullet.is_phantom = True
         phantom_bullet.velocity = velocity
         positions = []
         # Step it 200 times at once
-        for i in range(200):
+        for _ in range(200):
             phantom_bullet.acceleration = self.calculate_gravity(phantom_bullet.position)
             phantom_bullet.move()
-
-            # Only need to check for collision as much as we draw the dots
-            if i % 10 == (datetime.now().timestamp() * 30) % 10:
-                # Check for collisions with planets
-                for planet in self.planets.values():
-                    if planet.intersects(phantom_bullet.collision_sphere):
-                        phantom_bullet.dead = True
-                        break
-                if self.at_world_edge(phantom_bullet.position):
+            # Check for collisions with planets
+            for planet in self.planets.values():
+                if planet.intersects(phantom_bullet.collision_sphere):
                     phantom_bullet.dead = True
                     break
+            if self.at_world_edge(phantom_bullet.position):
+                phantom_bullet.dead = True
+                break
+            if phantom_bullet.dead:
+                break
 
-            positions.append((int(phantom_bullet.position.x), int(phantom_bullet.position.x)))
+            positions.append((int(phantom_bullet.position.x), int(phantom_bullet.position.y)))
 
         del phantom_bullet
         return positions
+
+    async def calculate_current_player_trajectory(self, sio, *args, **kwargs):
+        tank = self.current_tank
+        positions = await self.calculate_trajectory(t=tank.bullet_types[tank.selected_bullet],
+                                                    position=tank.position,
+                                                    velocity=tank.power * -tank.view_vector,
+                                                    owner=tank)
+        await sio.emit('trajectory', {'hue': tank.hue, 'positions': positions},
+                       room=self.current_player_sid,
+                       *args, **kwargs)
 
     async def calculate_all_trajectories(self, sio: AsyncServer, *args, **kwargs):
         for user in self.users:
@@ -694,7 +712,7 @@ class ObjectManager:
     def num_tanks_alive(self) -> int:
         return len([tank for tank in self.tanks.values() if not tank.dead])
 
-    def next_turn(self) -> TankObject:
+    async def next_turn(self) -> TankObject:
         """
         Gives turn to the next tank in the list, wrapping around when the end is reached.
         :return:
@@ -706,17 +724,30 @@ class ObjectManager:
                     found_it = True
                 elif found_it and not tank.dead:
                     self.current_player_sid, self.current_tank = sid, tank
+                    await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
                     return self.current_tank
 
-    def set_turn(self, tank_sid: str) -> TankObject:
+    async def set_turn(self, tank_sid: str) -> TankObject:
         """
         Sets the turn to the tank, instead of incrementing to the next one.
         :param tank_sid:
         :return:
         """
         self.current_player_sid, self.current_tank = tank_sid, self.tanks[tank_sid]
+        await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
         return self.current_tank
 
-    def start_game(self):
+    async def start_game(self) -> None:
         self.game_started = True
         self.current_player_sid, self.current_tank = list(self.tanks.items())[0]  # Pick the first player
+        await self.sio.emit('next-turn', {'current_player': self.current_player_sid})
+
+    async def update_target(self, player_sid, target):
+        if self.current_player_sid == player_sid:
+            tank = self.tanks[player_sid]
+            # Set Angle
+            tank.angle = atan2(target.y, target.x) * (180/pi) - tank.longitude + 270
+            # Set Power
+            tank.power = min(1.5 * sqrt(target.x**2 + target.y**2), tank.basePower + tank.currentFuel)
+            await self.calculate_current_player_trajectory(self.sio)
+

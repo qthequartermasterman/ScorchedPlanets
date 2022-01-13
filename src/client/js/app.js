@@ -46,6 +46,15 @@ function validNick() {
     return regex.exec(playerNameInput.value) !== null;
 }
 
+function findPlayer(playerSid){
+    for (let user of users){
+        if (user.id === playerSid){
+            return user;
+        }
+    }
+    return undefined;
+}
+
 window.onload = function() {
 
     if (!socket) {
@@ -135,6 +144,8 @@ let target = {x: player.x, y: player.y};
 let room_names=[];
 global.target = target;
 let turns_enabled = false;  // Is the game-mode turns-enabled or live?
+let particles = []; //List of particles to render
+let currentPlayer = '';
 
 window.canvas = new Canvas();
 window.chat = new ChatClient();
@@ -191,7 +202,40 @@ sprites = {
     BULLET10_SPRITE: load_image('/img/BulletSprites/bullet8.png'),
     BULLET11_SPRITE: load_image('/img/BulletSprites/bullet9.png'),
     BULLET12_SPRITE: load_image('/img/BulletSprites/bullet10.png'),
-    MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png')
+    MINE_SPRITE : load_image('/img/BulletSprites/tanks_mineOn.png'),
+    SPARK_SPRITE: load_image('/img/spark.png')
+}
+
+class Particle{
+    constructor(sprite, position, life_span, tint,
+                max_scale=1, scale_in_frac=0,
+                fade_in_frac=0, fad_out_frac=0){
+        this.sprite = sprite;
+        this.position = position;
+        this.life_span = life_span;
+        this.max_scale = max_scale;
+        this.scale_in_frac = scale_in_frac;
+        this.fade_in_frac = fade_in_frac;
+        this.fad_out_frac = fad_out_frac;
+        this.tint = tint;
+        this.time_created = Date.now();
+
+
+        this.dead = false;
+        this.image = sprites[sprite];
+    }
+
+    time_check(){
+        if (this.life_span < Date.now() - this.time_created){
+            this.dead = true;
+        }
+        return this.dead;
+    }
+
+    draw(context){
+        const center = getCenterXAndY(this.position);
+        rotateAndDrawImage(context, this.image, 0, center.x, center.y);
+    }
 }
 
 //grab sounds from the html
@@ -271,6 +315,16 @@ function update_play_button(){
     }
 }
 
+function returnToMenu(){
+    document.getElementById('gameAreaWrapper').style.opacity = 0;
+    document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+    global.died = false;
+    if (global.animLoopHandle) {
+        window.cancelAnimationFrame(global.animLoopHandle);
+        global.animLoopHandle = undefined;
+    }
+}
+
 
 // socket stuff.
 function setupSocket(socket) {
@@ -292,6 +346,13 @@ function setupSocket(socket) {
     socket.on('disconnect', function () {
         socket.close();
         global.disconnected = true;
+    });
+
+    socket.on('room_close', function(){
+        global.gameStart = false;
+        global.roomClosing = true;
+        planets = []
+        window.setTimeout(returnToMenu, 7500);
     });
 
     socket.on('room_list', (list)=>{
@@ -340,7 +401,7 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', function (data) {
-        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> was eaten.');
+        window.chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed tank' : data.name) + '</b> has died.');
     });
 
     socket.on('playerDisconnect', function (data) {
@@ -478,15 +539,7 @@ function setupSocket(socket) {
         global.gameStart = false;
         global.died = true;
         planets = []
-        window.setTimeout(function() {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            global.died = false;
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        window.setTimeout(returnToMenu, 2500);
     });
 
     socket.on('kick', function (data) {
@@ -503,7 +556,11 @@ function setupSocket(socket) {
 
     socket.on('trajectory', function(data){
         trajectory = data.positions;
-    })
+    });
+
+    socket.on('next-turn', function(data){
+       currentPlayer = data.current_player;
+    });
 }
 
 function drawCircle(centerX, centerY, radius, sides) {
@@ -539,44 +596,33 @@ function getCenterXAndY(object){
     if (turns_enabled && bullets.length){
         center_object = bullets[0];
     } else {
-        center_object = player;
+        const currentPlayerInfo = findPlayer(currentPlayer);
+        if (currentPlayerInfo) {
+            center_object = currentPlayerInfo;
+        } else {
+            center_object = player;
+        }
     }
     return {x:object.x - center_object.x + global.screenWidth/2,
             y:object.y - center_object.y + global.screenHeight/2}
 }
 
 function drawExplosion(explosion){
-    /*let centerX = explosion.x - player.x + global.screenWidth / 2 ;
-    let centerY = explosion.y - player.y + global.screenHeight / 2 ;*/
     const center = getCenterXAndY(explosion)
-    const [centerX, centerY] = [center.x, center.y]
 
     let spriteName = explosion.sprite.substring(11);
 
-    drawCircle(centerX, centerY, explosion.radius, 16);
+    drawCircle(center.x, center.y, explosion.radius, 16);
 
-    rotateAndDrawImage(graph, sprites[spriteName], 0, centerX, centerY, 0, 0);
+    rotateAndDrawImage(graph, sprites[spriteName], 0, center.x, center.y, 0, 0);
 
     // Play the sound
     playSound(explosion.sound)
 
 }
 
-function drawTrajectory(trajectory){
-    console.log('drawing traj')
-    graph.strokeStyle = 'red';
-    graph.beginPath();
-    for (let i = 0; i < trajectory.length; i++){
-        let center = getCenterXAndY({x:trajectory[i][0], y:trajectory[i][1]});
-        let centerX = center.x;
-        let centerY = center.y;
-        //graph.fillRect(centerX, centerY,1, 1);
-        graph.moveTo(centerX, centerY);
-    }
-    graph.closePath()
-    graph.stroke()
 
-}
+
 
 
 function drawHPBar(health){
@@ -704,7 +750,7 @@ function drawPlanet(planet){
 
 
 
-    for (var i = 0; i < planet.number_of_altitudes; i++) {
+    for (let i = 0; i < planet.number_of_altitudes; i++) {
         theta = (i / planet.number_of_altitudes) * 2 * Math.PI;
         x = centerX + planet.altitudes[i] * Math.cos(theta);
         y = centerY + planet.altitudes[i] * Math.sin(theta);
@@ -722,16 +768,15 @@ function drawPlanet(planet){
 }
 
 function drawBullet(bullet){
-    //console.log('drawing bullet');
-    /*let centerX = bullet.x - player.x + global.screenWidth / 2;
-    let centerY = bullet.y - player.y + global.screenHeight / 2;*/
     const center = getCenterXAndY(bullet)
-    const [centerX, centerY] = [center.x, center.y]
     let sprite_name = bullet.sprite.substring(11); //The string passed includes 'SpriteType.' before the name
-    // console.log(sprite_name)
-    // console.log(sprites[sprite_name], bullet.roll, centerX, centerY)
-    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, centerX, centerY,0,0);
+    rotateAndDrawImage(graph, sprites[sprite_name], bullet.roll, center.x, center.y,0,0);
     playSound(bullet.sound);
+    // Every so often, add a particle to show the trajectory
+    // 10 times a second add a particle
+    if (( Date.now() % 100)<50){
+        particles.push(new Particle('BULLET2_SPRITE', {x:bullet.x, y:bullet.y}, 10000, bullet.hue, .1));
+    }
 }
 
 
@@ -800,6 +845,55 @@ function drawborder() {
     }
 }
 
+function drawParticles(){
+    particles = particles.filter(particle => !particle.time_check()); // Delete all of the dead particles
+    // for (let particle of particles){
+    //     particle.draw(graph);
+    // }
+    // graph.lineWidth = "5";
+    // graph.setLineDash([5,15]);
+    // graph.beginPath();
+    // graph.strokeStyle = '';
+    // let current_color = '';
+    for (let i in particles){
+        const point = {x:particles[i].position.x, y:particles[i].position.y}
+        const center = getCenterXAndY(point);
+        console.log(center, graph.strokeStyle);
+        // if (current_color !== particles[i].tint) {
+        //     graph.strokeStyle = particles[i].tint || 'red';
+        //     current_color = particles[i].tint || 'red';
+        //     graph.moveTo(center.x, center.y);
+        // } else {
+        //     graph.lineTo(center.x, center.y);
+        // }
+        graph.fillStyle = particles[i].tint || 'red';
+        graph.fillRect(center.x, center.y, 5,5);
+    }
+    // graph.stroke();
+    // graph.setLineDash([]); //Reset the dashed lines
+}
+
+function drawTrajectory(trajectory){
+    const current_tank = findPlayer(currentPlayer);
+    graph.strokeStyle = current_tank ? (current_tank.hue || 'red') : 'red';
+    graph.lineWidth="5";
+    graph.setLineDash([5,15]);
+    graph.beginPath();
+    for (let i = 0; i < trajectory.length; i++){
+        const point = {x:trajectory[i][0], y:trajectory[i][1]}
+        const center = getCenterXAndY(point);
+        if (i === 0) {
+            graph.moveTo(center.x, center.y);
+        } else {
+            graph.lineTo(center.x, center.y);
+        }
+
+    }
+    graph.stroke();
+    graph.setLineDash([]); //Reset the dashed lines
+
+}
+
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame       ||
             window.webkitRequestAnimationFrame ||
@@ -830,22 +924,31 @@ function gameLoop() {
         graph.font = 'bold 30px sans-serif';
         graph.fillText('You died!', global.screenWidth / 2, global.screenHeight / 2);
     }
+    else if (global.roomClosing) {
+        graph.fillStyle = '#333333';
+        graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
+
+        graph.textAlign = 'center';
+        graph.fillStyle = '#FFFFFF';
+        graph.font = 'bold 30px sans-serif';
+        graph.fillText('Room is closing!', global.screenWidth / 2, global.screenHeight / 2);
+    }
     else if (!global.disconnected) {
         if (global.gameStart) {
             graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
-            planets.forEach(drawPlanet)
+            planets.forEach(drawPlanet);
+            drawTrajectory(trajectory); //Trajectory before users, so that it's not renders atop tanks
             users.forEach(drawTank);
             bullets.forEach(drawBullet);
+            drawParticles();
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
             drawInventory();
-            //drawTrajectory(trajectory);
 
             if (global.borderDraw) {
                 drawborder();
             }
             socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
-
         } else {
             graph.fillStyle = '#333333';
             graph.fillRect(0, 0, global.screenWidth, global.screenHeight);

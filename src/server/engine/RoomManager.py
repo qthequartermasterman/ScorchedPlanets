@@ -17,7 +17,7 @@ from socketio import AsyncServer
 
 from .ObjectManager import ObjectManager
 from .Config import ConfigData
-from .util import validNick, Sid
+from .util import validNick, Sid, colors
 from .vector import Vector
 from .PlayerInfo import PlayerInfo
 
@@ -101,7 +101,7 @@ class Room:
                     object_manager.create_tank(longitude=random() * 360,
                                                home_planet=choice(list(object_manager.planets.values())),
                                                sid=sid,
-                                               color=str(int(random() * 360)),
+                                               color=choice(colors),
                                                is_player=True)
 
                     users.append(session['currentPlayer'])
@@ -114,7 +114,7 @@ class Room:
                                          },
                                         room=sid)
                     if len(object_manager.tanks) > 1:
-                        object_manager.start_game()
+                        await object_manager.start_game()
                         print(f'Starting game in room {self.name}')
 
     def disconnect_player(self, sid: Sid):
@@ -187,7 +187,7 @@ class RoomManager:
         :return: None
         """
         if name not in self.rooms:
-            self.rooms[name] = Room(name, self.sio, ObjectManager(file_path=level_path))
+            self.rooms[name] = Room(name, self.sio, ObjectManager(sio=self.sio, file_path=level_path))
 
         else:
             raise RoomAlreadyExistsError(f'Room with name {name} already exists.')
@@ -338,7 +338,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).strafe_left(sid)
+        await self.get_object_manager_from_sid(sid).strafe_left(sid)
 
     @pass_if_no_object_manager_error
     async def strafe_right(self, sid: Sid) -> None:
@@ -348,7 +348,7 @@ class RoomManager:
         :return: None
         """
 
-        self.get_object_manager_from_sid(sid).strafe_right(sid)
+        await self.get_object_manager_from_sid(sid).strafe_right(sid)
 
     @pass_if_no_object_manager_error
     async def angle_left(self, sid: Sid) -> None:
@@ -357,7 +357,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).angle_left(sid)
+        await self.get_object_manager_from_sid(sid).angle_left(sid)
 
     @pass_if_no_object_manager_error
     async def angle_right(self, sid: Sid) -> None:
@@ -366,7 +366,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).angle_right(sid)
+        await self.get_object_manager_from_sid(sid).angle_right(sid)
 
     @pass_if_no_object_manager_error
     async def fire_gun(self, sid: Sid) -> None:
@@ -384,7 +384,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).power_up(sid)
+        await self.get_object_manager_from_sid(sid).power_up(sid)
 
     @pass_if_no_object_manager_error
     async def power_down(self, sid: Sid) -> None:
@@ -393,7 +393,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).power_down(sid)
+        await self.get_object_manager_from_sid(sid).power_down(sid)
 
     @pass_if_no_object_manager_error
     async def next_bullet(self, sid: Sid) -> None:
@@ -413,7 +413,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_objects_initial(*args,  **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_objects_initial(*args, **kwargs) for room in self.rooms.values()])
 
     async def send_updates(self, *args, **kwargs):
         """
@@ -424,7 +424,7 @@ class RoomManager:
         that specify a socketio.emit command.
         :return:
         """
-        return await asyncio.gather(*[room.send_updates(*args,  **kwargs) for room in self.rooms.values()])
+        return await asyncio.gather(*[room.send_updates(*args, **kwargs) for room in self.rooms.values()])
 
     async def move_loop(self) -> Future:
         """
@@ -453,7 +453,7 @@ class RoomManager:
         Get a list of all of the current room names.
         :return:
         """
-        return list(key for key in self.rooms.keys() if key != 'default')
+        return [key for key in self.rooms.keys() if key != 'default']
 
     async def game_loop(self):
         """
@@ -471,3 +471,6 @@ class RoomManager:
 
     async def send_room_list(self, room=None):
         await self.sio.emit('room_list', self.get_list_of_room_names(), room=room)
+
+    async def update_target(self, player_sid: Sid, target: Vector):
+        await self.get_object_manager_from_sid(player_sid).update_target(player_sid, target)

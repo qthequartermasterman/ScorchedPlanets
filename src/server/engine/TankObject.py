@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum, auto
 from math import sqrt, pi
-from random import randint
+from random import randint, choice
 from typing import List
 
 from socketio import AsyncServer
@@ -12,6 +12,7 @@ from .PlanetObject import PlanetObject
 from .SoundType import SoundType
 from .SpriteType import SpriteType
 from .vector import Vector, UnitVector
+from .util import colors
 
 
 class TankState(Enum):
@@ -112,8 +113,7 @@ class TankObject(Object):
         self.power_speed: float = 0  # Speed at which to increase or decrease power.
         self.in_control: bool  # If input is currently controlling this object
 
-        if color:
-            self.hue = color
+        self.hue = color or choice(colors)
 
     def take_damage(self, damage: int):
         """
@@ -232,6 +232,7 @@ class TankObject(Object):
                                'planet_y': self.home_planet.position.y,
                                'angle': self.angle,
                                'longitude': self.longitude,
+                               'hue': self.hue,
                                'update': item}, *args, **kwargs)
             self.changes_queue.task_done()
 
@@ -249,6 +250,7 @@ class TankObject(Object):
                 'selected_bullet': self.selected_bullet,
                 'bullet_counts': self.bullet_counts,
                 'bullet_sprites': [str(bullet_type) for bullet_type in self.bullet_types],
+                'hue': self.hue,
                 'sound': str(self.sound_type_to_play)}
 
     def think(self):
