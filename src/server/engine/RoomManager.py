@@ -338,7 +338,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).strafe_left(sid)
+        await self.get_object_manager_from_sid(sid).strafe_left(sid)
 
     @pass_if_no_object_manager_error
     async def strafe_right(self, sid: Sid) -> None:
@@ -348,7 +348,7 @@ class RoomManager:
         :return: None
         """
 
-        self.get_object_manager_from_sid(sid).strafe_right(sid)
+        await self.get_object_manager_from_sid(sid).strafe_right(sid)
 
     @pass_if_no_object_manager_error
     async def angle_left(self, sid: Sid) -> None:
@@ -357,7 +357,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).angle_left(sid)
+        await self.get_object_manager_from_sid(sid).angle_left(sid)
 
     @pass_if_no_object_manager_error
     async def angle_right(self, sid: Sid) -> None:
@@ -366,7 +366,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).angle_right(sid)
+        await self.get_object_manager_from_sid(sid).angle_right(sid)
 
     @pass_if_no_object_manager_error
     async def fire_gun(self, sid: Sid) -> None:
@@ -384,7 +384,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).power_up(sid)
+        await self.get_object_manager_from_sid(sid).power_up(sid)
 
     @pass_if_no_object_manager_error
     async def power_down(self, sid: Sid) -> None:
@@ -393,7 +393,7 @@ class RoomManager:
         :param sid: socket-id of the user
         :return: None
         """
-        self.get_object_manager_from_sid(sid).power_down(sid)
+        await self.get_object_manager_from_sid(sid).power_down(sid)
 
     @pass_if_no_object_manager_error
     async def next_bullet(self, sid: Sid) -> None:

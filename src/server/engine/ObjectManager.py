@@ -282,15 +282,17 @@ class ObjectManager:
         #     sid = self.sockets[u.id]
         #     await sio.emit('serverTellPlayerMove', [user_transmit, [], [], []], room=sid)
 
-    def strafe_right(self, sid):
+    async def strafe_right(self, sid):
         try:
             self.tanks[sid].strafe_right = True
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:  # Dead player trying to move. Avoid crash
             pass
 
-    def strafe_left(self, sid):
+    async def strafe_left(self, sid):
         try:
             self.tanks[sid].strafe_left = True
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:  # Dead player trying to move. Avoid crash
             pass
 
@@ -307,15 +309,17 @@ class ObjectManager:
         except IndexError:
             pass
 
-    def angle_left(self, sid):
+    async def angle_left(self, sid):
         try:
             self.tanks[sid].rotation_speed = -1
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             pass
 
-    def angle_right(self, sid):
+    async def angle_right(self, sid):
         try:
             self.tanks[sid].rotation_speed = 1
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             pass
 
@@ -492,20 +496,22 @@ class ObjectManager:
             self.tanks.pop(sid)
             await server.emit('RIP', room=sid)
 
-    def power_up(self, sid):
+    async def power_up(self, sid):
         try:
             player = self.tanks[sid]
             player.power += 2
             player.power = min(player.power, player.basePower + player.currentFuel)
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             # Player is dead
             pass
 
-    def power_down(self, sid):
+    async def power_down(self, sid):
         try:
             player = self.tanks[sid]
             player.power -= 2
             player.power = max(player.power, 1)
+            await self.calculate_current_player_trajectory(self.sio)
         except KeyError:
             # Player is dead
             pass
