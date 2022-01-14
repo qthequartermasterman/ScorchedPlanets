@@ -660,27 +660,30 @@ function drawInventory(){
     //go through each available bullet for player
     for (let i=0; i < 5; i++){//only display 5 bullets at a time
         let bulletIndex = i + selectedIndex;
-        // Make sure our index is within the range of available bullets
-        if (bulletIndex >= player.bullet_counts.length)
-            bulletIndex -= player.bullet_counts.length;
+        if (player.bullet_counts && !isNaN(selectedIndex)){
+            // Make sure our index is within the range of available bullets
+            if (bulletIndex >= player.bullet_counts.length)
+                bulletIndex -= player.bullet_counts.length;
 
-        //set sprite and draw on side of screen
-        let sprite_name = player.bullet_sprites[bulletIndex].substring(11);
-        let sprite = sprites[sprite_name];
+            //set sprite and draw on side of screen
+            let sprite_name = player.bullet_sprites[bulletIndex].substring(11);
+            let sprite = sprites[sprite_name];
 
 
 
-        let angle = i===0 ? Math.PI/4 : 0
-        rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
+            let angle = i===0 ? Math.PI/4 : 0
+            rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
 
-        //Draw Bullet counts
-        if (bulletIndex === 0 || bulletIndex === 1)
-            inventory_ctx.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
-        else
-            inventory_ctx.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
+            //Draw Bullet counts
+            if (bulletIndex === 0 || bulletIndex === 1)
+                inventory_ctx.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
+            else
+                inventory_ctx.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
 
-        if (i===0)
-            inventory_ctx.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+            if (i===0)
+                inventory_ctx.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+        }
+
     }
 }
 
@@ -921,6 +924,7 @@ function animloop() {
 
 function gameLoop() {
     if (global.died) {
+        graph.resetTransform();
         graph.fillStyle = '#333333';
         graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
@@ -930,6 +934,7 @@ function gameLoop() {
         graph.fillText('You died!', global.screenWidth / 2, global.screenHeight / 2);
     }
     else if (global.roomClosing) {
+        graph.resetTransform();
         graph.fillStyle = '#333333';
         graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
