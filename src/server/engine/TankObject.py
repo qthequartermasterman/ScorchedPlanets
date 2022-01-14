@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum, auto
 from math import sqrt, pi
-from random import randint
+from random import randint, choice
 from typing import List
 
 from socketio import AsyncServer
@@ -12,6 +12,7 @@ from .PlanetObject import PlanetObject
 from .SoundType import SoundType
 from .SpriteType import SpriteType
 from .vector import Vector, UnitVector
+from .util import colors
 
 
 class TankState(Enum):
@@ -61,7 +62,7 @@ class TankObject(Object):
 
         # AI private variables
         self.is_player_character: bool = False
-        self.accuracy_multiplier: float = 0.001
+        self.accuracy_multiplier: float = .001
         self.current_state: TankState = TankState.Wait
         self.desired_angle: float = 45
         # +1 to keep adjusting angle in the pos direction, -1 to adjust in the neg direction, 0 to not change at all.
@@ -112,8 +113,7 @@ class TankObject(Object):
         self.power_speed: float = 0  # Speed at which to increase or decrease power.
         self.in_control: bool  # If input is currently controlling this object
 
-        if color:
-            self.hue = color
+        self.hue = color or choice(colors)
 
     def take_damage(self, damage: int):
         """
@@ -136,28 +136,31 @@ class TankObject(Object):
         self.home_planet = new_planet
         self.position = pos
 
-    def move(self):
+    def move(self, currently_my_turn=True):
         # Check if I'm dead
         if self.health_points <= 0:
             self.kill()
         t: float = .1  # Time step
 
-        self.power += self.power_speed * t  # Affect power if keys are pressed down.
-        # It's totally possible to bring the power to the negatives, meaning the projectile starts shooting backwards.
-        # Let's not do that.
-        self.power = max(0, self.power)
-        self.angle += 30 * self.rotation_speed * t  # We want to move 30 degrees every second
-        self.angle = self.angle % 360  # Make sure our angle is less than 360.
-        self.roll = pi + (self.angle + self.longitude) * pi / 180
-        viewvec: Vector = self.view_vector
-        delta: float = 40 * t
+        if currently_my_turn:
+            # We should only move the tank controls if it's our turn
+            self.power += self.power_speed * t  # Affect power if keys are pressed down.
+            # It's totally possible to bring the power to the negatives, meaning the projectile starts shooting backwards.
+            # Let's not do that.
+            self.power = max(0, self.power)
+            self.angle += 30 * self.rotation_speed * t  # We want to move 30 degrees every second
+            self.angle = self.angle % 360  # Make sure our angle is less than 360.
+            self.roll = pi + (self.angle + self.longitude) * pi / 180
+            viewvec: Vector = self.view_vector
+            delta: float = 40 * t
 
-        if self.strafe_left:
-            self.longitude -= delta
-        elif self.strafe_right:
-            self.longitude += delta
-        self.longitude = self.longitude % 360
+            if self.strafe_left:
+                self.longitude -= delta
+            elif self.strafe_right:
+                self.longitude += delta
+            self.longitude = self.longitude % 360
 
+        # Fall down if the ground beneath us is gone.
         planet_center: Vector = self.home_planet.position
         direction_unit_vector: Vector = UnitVector(self.longitude * pi / 180)
         altitude: int = self.home_planet.get_altitude_at_angle(self.longitude)
@@ -174,6 +177,8 @@ class TankObject(Object):
             self.animation_state = TankAnimationState.Normal
             self.position = planet_center + (altitude + self.collision_radius) * direction_unit_vector
 
+
+        # Get ready for next tick
         self.strafe_right = self.strafe_left = False
         self.collision_sphere.center = self.position
         self.rotation_speed = 0
@@ -227,6 +232,7 @@ class TankObject(Object):
                                'planet_y': self.home_planet.position.y,
                                'angle': self.angle,
                                'longitude': self.longitude,
+                               'hue': self.hue,
                                'update': item}, *args, **kwargs)
             self.changes_queue.task_done()
 
@@ -244,6 +250,7 @@ class TankObject(Object):
                 'selected_bullet': self.selected_bullet,
                 'bullet_counts': self.bullet_counts,
                 'bullet_sprites': [str(bullet_type) for bullet_type in self.bullet_types],
+                'hue': self.hue,
                 'sound': str(self.sound_type_to_play)}
 
     def think(self):
@@ -308,14 +315,7 @@ class TankObject(Object):
             pass
 
     def _tank_state_postfire(self):
-        if not turns_enabled:
-            if self.is_player_character:
-                self.current_state = TankState.Manual
-            else:
-                self.current_state = TankState.Wait
-        else:
-            # TODO: Implement turns
-            pass
+        pass
 
     def _tank_state_firewait(self):
         pass
@@ -379,5 +379,5 @@ class TankObject(Object):
         if self.is_player_character:
             self.current_state = TankState.Manual
         # Check if it's my turn. If so, switch to think. If not, do nothing.
-        if not turns_enabled and not self.is_player_character:
+        if not self.is_player_character:
             self.current_state = TankState.Think

@@ -90,6 +90,7 @@ async def heartbeat(sid, target):
         session["currentPlayer"].lastHeartbeat = datetime.now().timestamp()
         if target['x'] != session["currentPlayer"].x or target['y'] != session["currentPlayer"].y:
             session["currentPlayer"].target = Vector(**target)
+            await room_manager.update_target(sid, session['currentPlayer'].target)
 
 
 @sio.event

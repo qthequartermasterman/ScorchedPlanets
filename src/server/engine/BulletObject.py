@@ -125,6 +125,7 @@ class BulletObject(Object):
                 'roll': self.roll,
                 'x': self.position.x,
                 'y': self.position.y,
+                'hue': self.hue,
                 'sound': str(self.sound_type_to_play)}
 
     @property

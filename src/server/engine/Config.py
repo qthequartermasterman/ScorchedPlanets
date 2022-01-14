@@ -39,5 +39,5 @@ ConfigData: Config
 with open('../../config.json') as f:
     ConfigData = Config(**json.load(f))
 
-turns_enabled: bool = False  # Set False for debug
+turns_enabled: bool = True  # Set False for debug
 gravity_constant: float = 500000  # Gravity Constant in Newton's Law of Universal Gravitation
