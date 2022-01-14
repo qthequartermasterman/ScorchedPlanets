@@ -23,7 +23,6 @@ class Canvas {
         this.cv.addEventListener('touchstart', this.touchInput, false);
         this.cv.addEventListener('touchmove', this.touchInput, false);
         this.cv.addEventListener('click', function(event){
-            console.log(event);
             this.parent.socket.emit('fire_gun');
         }, false)
         this.cv.parent = self;
@@ -138,9 +137,24 @@ class Canvas {
 
     gameInput(mouse) {
     	if (!this.directionLock) {
-    		this.parent.target.x = mouse.clientX - this.width / 2;
-    		this.parent.target.y = mouse.clientY - this.height / 2;
-            global.target = this.parent.target;
+            if (findPlayer(currentPlayer) && findPlayer(currentPlayer).longitude){
+                const mx = mouse.offsetX-this.width/2;
+                const my = mouse.offsetY-this.height/2;
+                let render_angle = Math.PI/2 + findPlayer(currentPlayer).longitude * Math.PI/180; // So that the current player is always upright
+                const cos = Math.cos(render_angle);
+                const sin = Math.sin(render_angle);
+
+                const X = cos * mx - sin *my;
+                const Y = sin * mx + cos * my;
+
+                //console.log(mouse.offsetX, mouse.offsetY,mx,my,X,Y)
+                // this.parent.target.x = mouse.clientX - this.width / 2;
+                // this.parent.target.y = mouse.clientY - this.height / 2;
+                this.parent.target.x = X;
+                this.parent.target.y = Y;
+                global.target = this.parent.target;
+            }
+
     	}
     }
 

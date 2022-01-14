@@ -165,6 +165,8 @@ continuitySetting.onchange = settings.toggleContinuity;
 const c = window.canvas.cv;
 const graph = c.getContext('2d');
 const health_ctx = document.getElementById('cvs-healthbar').getContext('2d');
+const inventory_cv = document.getElementById('cvs-inventory');
+const inventory_ctx = inventory_cv.getContext('2d');
 
 $( "#feed" ).click(function() {
     socket.emit('1');
@@ -585,7 +587,7 @@ function drawCircle(centerX, centerY, radius, sides) {
 function rotateAndDrawImage(context, image, angleInRadians, positionX, positionY, axisX=0, axisY=0, imageWidth=1, imageHeight=1){
     context.save()
     context.translate( positionX , positionY);
-    context.rotate( angleInRadians );
+    context.rotate(angleInRadians);
     context.translate(- image.width/2, - image.height/2)
     context.drawImage( image, -axisX, -axisY , imageWidth * image.width, imageHeight*image.height);
     context.restore()
@@ -648,34 +650,44 @@ function drawHPBar(health){
 }
 
 function drawInventory(){
+    //Clear
+    inventory_ctx.clearRect(0, 0, global.screenWidth, global.screenHeight);
+
     let selectedIndex = player.selected_bullet;
-    graph.fillStyle = "#ffffffff";
-    graph.textAlign = "left";
-    graph.font = "24px Arial";
+    inventory_ctx.fillStyle = "#ffffffff";
+    inventory_ctx.textAlign = "left";
+    inventory_ctx.font = "24px Arial";
     //go through each available bullet for player
     for (let i=0; i < 5; i++){//only display 5 bullets at a time
         let bulletIndex = i + selectedIndex;
-        // Make sure our index is within the range of available bullets
-        if (bulletIndex >= player.bullet_counts.length)
-            bulletIndex -= player.bullet_counts.length;
 
-        //set sprite and draw on side of screen
-        let sprite_name = player.bullet_sprites[bulletIndex].substring(11);
-        let sprite = sprites[sprite_name];
+        //console.log('i=',i, bulletIndex)
+        if (player.bullet_counts && !isNaN(bulletIndex)){
+            //console.log(player.bullet_counts)
+            // Make sure our index is within the range of available bullets
+            if (bulletIndex >= player.bullet_counts.length)
+                bulletIndex -= player.bullet_counts.length;
+
+            //set sprite and draw on side of screen
+            let sprite_name = player.bullet_sprites[bulletIndex].substring(11);
+            let sprite = sprites[sprite_name];
 
 
 
-        let angle = i===0 ? Math.PI/4 : 0
-        rotateAndDrawImage(graph, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
+            let angle = i===0 ? Math.PI/4 : 0
+            //console.log(sprite, angle);
+            rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
 
-        //Draw Bullet counts
-        if (bulletIndex === 0 || bulletIndex === 1)
-            graph.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
-        else
-            graph.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
+            //Draw Bullet counts
+            if (bulletIndex === 0 || bulletIndex === 1)
+                inventory_ctx.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
+            else
+                inventory_ctx.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
 
-        if (i===0)
-            graph.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+            if (i===0)
+                inventory_ctx.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+        }
+
     }
 }
 
@@ -858,7 +870,7 @@ function drawParticles(){
     for (let i in particles){
         const point = {x:particles[i].position.x, y:particles[i].position.y}
         const center = getCenterXAndY(point);
-        console.log(center, graph.strokeStyle);
+        // console.log(center, graph.strokeStyle);
         // if (current_color !== particles[i].tint) {
         //     graph.strokeStyle = particles[i].tint || 'red';
         //     current_color = particles[i].tint || 'red';
@@ -916,6 +928,7 @@ function animloop() {
 
 function gameLoop() {
     if (global.died) {
+        graph.resetTransform();
         graph.fillStyle = '#333333';
         graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
@@ -925,6 +938,7 @@ function gameLoop() {
         graph.fillText('You died!', global.screenWidth / 2, global.screenHeight / 2);
     }
     else if (global.roomClosing) {
+        graph.resetTransform();
         graph.fillStyle = '#333333';
         graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
@@ -935,7 +949,18 @@ function gameLoop() {
     }
     else if (!global.disconnected) {
         if (global.gameStart) {
+            //Reset all transformations
+            graph.resetTransform();
             graph.clearRect(0, 0, global.screenWidth, global.screenHeight);
+
+            //Rotate the entire screen so that the current player is upright.
+            if (findPlayer(currentPlayer) && findPlayer(currentPlayer).longitude){
+                let render_angle = Math.PI/2 + findPlayer(currentPlayer).longitude * Math.PI/180; // So that the current player is always upright
+                graph.translate(global.screenWidth/2, global.screenHeight/2);
+                graph.rotate(-render_angle);
+                graph.translate(-global.screenWidth/2, -global.screenHeight/2);
+            }
+
             planets.forEach(drawPlanet);
             drawTrajectory(trajectory); //Trajectory before users, so that it's not renders atop tanks
             users.forEach(drawTank);
@@ -943,7 +968,7 @@ function gameLoop() {
             drawParticles();
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
-            drawInventory();
+            //drawInventory();
 
             if (global.borderDraw) {
                 drawborder();
@@ -985,8 +1010,8 @@ window.addEventListener('resize', resize);
 function resize() {
     if (!socket) return;
 
-    player.screenWidth = c.width = global.screenWidth = global.playerType === 'player' ? window.innerWidth : global.gameWidth;
-    player.screenHeight = c.height = global.screenHeight = global.playerType === 'player' ? window.innerHeight : global.gameHeight;
+    player.screenWidth = c.width = inventory_cv.width = global.screenWidth = global.playerType === 'player' ? window.innerWidth : global.gameWidth;
+    player.screenHeight = c.height = inventory_cv.height = global.screenHeight = global.playerType === 'player' ? window.innerHeight : global.gameHeight;
 
     if (global.playerType === 'spectate') {
         player.x = global.gameWidth / 2;
