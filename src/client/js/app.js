@@ -650,10 +650,13 @@ function drawHPBar(health){
 }
 
 function drawInventory(){
+    //Clear
+    inventory_ctx.clearRect(0, 0, global.screenWidth, global.screenHeight);
+
     let selectedIndex = player.selected_bullet;
-    graph.fillStyle = "#ffffffff";
-    graph.textAlign = "left";
-    graph.font = "24px Arial";
+    inventory_ctx.fillStyle = "#ffffffff";
+    inventory_ctx.textAlign = "left";
+    inventory_ctx.font = "24px Arial";
     //go through each available bullet for player
     for (let i=0; i < 5; i++){//only display 5 bullets at a time
         let bulletIndex = i + selectedIndex;
@@ -668,16 +671,16 @@ function drawInventory(){
 
 
         let angle = i===0 ? Math.PI/4 : 0
-        rotateAndDrawImage(graph, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
+        rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
 
         //Draw Bullet counts
         if (bulletIndex === 0 || bulletIndex === 1)
-            graph.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
+            inventory_ctx.fillText("Infinite", 100, global.screenHeight/3 - 30 + (i * 50));
         else
-            graph.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
+            inventory_ctx.fillText(player.bullet_counts[bulletIndex], 100, global.screenHeight/3- 30 + (i * 50));
 
         if (i===0)
-            graph.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
+            inventory_ctx.fillText("<-", 175, global.screenHeight/3 - 30 + (i * 50));
     }
 }
 
