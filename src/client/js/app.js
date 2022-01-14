@@ -165,6 +165,8 @@ continuitySetting.onchange = settings.toggleContinuity;
 const c = window.canvas.cv;
 const graph = c.getContext('2d');
 const health_ctx = document.getElementById('cvs-healthbar').getContext('2d');
+const inventory_cv = document.getElementById('cvs-inventory');
+const inventory_ctx = inventory_cv.getContext('2d');
 
 $( "#feed" ).click(function() {
     socket.emit('1');
