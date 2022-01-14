@@ -660,7 +660,10 @@ function drawInventory(){
     //go through each available bullet for player
     for (let i=0; i < 5; i++){//only display 5 bullets at a time
         let bulletIndex = i + selectedIndex;
-        if (player.bullet_counts && !isNaN(selectedIndex)){
+
+        console.log('i=',i, bulletIndex)
+        if (player.bullet_counts && !isNaN(bulletIndex)){
+            console.log(player.bullet_counts)
             // Make sure our index is within the range of available bullets
             if (bulletIndex >= player.bullet_counts.length)
                 bulletIndex -= player.bullet_counts.length;
@@ -672,6 +675,7 @@ function drawInventory(){
 
 
             let angle = i===0 ? Math.PI/4 : 0
+            console.log(sprite, angle);
             rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
 
             //Draw Bullet counts
@@ -964,7 +968,7 @@ function gameLoop() {
             drawParticles();
             explosions.forEach(drawExplosion);
             //drawHPBar(player.health)
-            drawInventory();
+            //drawInventory();
 
             if (global.borderDraw) {
                 drawborder();
@@ -1006,8 +1010,8 @@ window.addEventListener('resize', resize);
 function resize() {
     if (!socket) return;
 
-    player.screenWidth = c.width = global.screenWidth = global.playerType === 'player' ? window.innerWidth : global.gameWidth;
-    player.screenHeight = c.height = global.screenHeight = global.playerType === 'player' ? window.innerHeight : global.gameHeight;
+    player.screenWidth = c.width = inventory_cv.width = global.screenWidth = global.playerType === 'player' ? window.innerWidth : global.gameWidth;
+    player.screenHeight = c.height = inventory_cv.height = global.screenHeight = global.playerType === 'player' ? window.innerHeight : global.gameHeight;
 
     if (global.playerType === 'spectate') {
         player.x = global.gameWidth / 2;
