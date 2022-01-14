@@ -661,9 +661,9 @@ function drawInventory(){
     for (let i=0; i < 5; i++){//only display 5 bullets at a time
         let bulletIndex = i + selectedIndex;
 
-        console.log('i=',i, bulletIndex)
+        //console.log('i=',i, bulletIndex)
         if (player.bullet_counts && !isNaN(bulletIndex)){
-            console.log(player.bullet_counts)
+            //console.log(player.bullet_counts)
             // Make sure our index is within the range of available bullets
             if (bulletIndex >= player.bullet_counts.length)
                 bulletIndex -= player.bullet_counts.length;
@@ -675,7 +675,7 @@ function drawInventory(){
 
 
             let angle = i===0 ? Math.PI/4 : 0
-            console.log(sprite, angle);
+            //console.log(sprite, angle);
             rotateAndDrawImage(inventory_ctx, sprite, angle, 50, global.screenHeight/3 - 30 + (i*50));
 
             //Draw Bullet counts
